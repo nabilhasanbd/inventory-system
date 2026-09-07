@@ -7,3 +7,5 @@
 - Prefers practical, non-over-engineered architecture — explicitly says "do not over-engineer it" and favors a single-project structure with folders over multi-project Clean Architecture splits when the scale doesn't warrant it. Confidence: 0.8
 - Prefers phased/incremental implementation — asks for structure/config first, then logic, then controllers in separate steps, with explicit "do not implement X yet" constraints to control the pace. Confidence: 0.7
 - Prefers concise explanations after changes — asks to "explain the structure briefly" rather than receiving lengthy summaries. Confidence: 0.7
+- Prefers communication in English. Even though the user occasionally uses Banglish, they explicitly asked to "stay with English" when the assistant switched to Bengali. Confidence: 0.9
+- Prefers EF Core Fluent API over data annotations for entity configuration — explicitly states "Use EF Core Fluent API where appropriate." Confidence: 0.8
