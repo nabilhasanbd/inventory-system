@@ -10,3 +10,4 @@
 - Prefers communication in English. Even though the user occasionally uses Banglish, they explicitly asked to "stay with English" when the assistant switched to Bengali. Confidence: 0.9
 - Prefers EF Core Fluent API over data annotations for entity configuration — explicitly states "Use EF Core Fluent API where appropriate." Confidence: 0.8
 - Prefers not to modify existing design/code unless there is a real problem — explicitly says "do not change the entity design unless there is a real problem" when requesting next-step work. Confidence: 0.7
+- Prefers idempotent database operations — explicitly asks that seed data be "safe to run without creating duplicate master records," favoring check-before-insert patterns over blind inserts or drop-and-recreate approaches. Confidence: 0.7
