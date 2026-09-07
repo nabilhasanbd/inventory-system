@@ -11,3 +11,7 @@
 - Prefers EF Core Fluent API over data annotations for entity configuration — explicitly states "Use EF Core Fluent API where appropriate." Confidence: 0.8
 - Prefers not to modify existing design/code unless there is a real problem — explicitly says "do not change the entity design unless there is a real problem" when requesting next-step work. Confidence: 0.7
 - Prefers idempotent database operations — explicitly asks that seed data be "safe to run without creating duplicate master records," favoring check-before-insert patterns over blind inserts or drop-and-recreate approaches. Confidence: 0.7
+- Prefers DTOs over exposing EF entities directly in API contracts — explicitly requests separate Create, Update, and Response DTOs. Confidence: 0.8
+- Prefers a service-layer architecture with thin controllers — business logic (validation, uniqueness checks, mapping) lives in services, controllers just delegate and return results. Confidence: 0.8
+- Prefers soft-delete (activate/deactivate) over hard-delete for entities that may be referenced by other records, preserving referential integrity. Confidence: 0.7
+- Prefers building and fixing errors after each implementation step before moving on — explicitly requests "build the project after implementation and fix any errors." Confidence: 0.7
