@@ -1,0 +1,43 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+
+# IDE / editor
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# Build configurations
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Test results
+[Tt]est[Rr]esult*/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+
+# Frontend (React / Node)
+node_modules/
+dist/
+build/
+.vite/
+.next/
+
+# Logs & temporary files
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets - use `dotnet user-secrets` instead of committing these
+appsettings.*.Secrets.json
+secrets.json
