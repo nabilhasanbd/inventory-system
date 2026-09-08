@@ -5,7 +5,7 @@
 - Wants scaffolded/template boilerplate removed from projects — example files, stale references, and non-essential generated code should be cleaned up promptly after scaffolding. Confidence: 0.8
 - Tech stack of choice: ASP.NET Core Web API (backend), Entity Framework Core (ORM), PostgreSQL (database), React (frontend). Confidence: 0.7
 - Prefers practical, non-over-engineered architecture — explicitly says "do not over-engineer it" and favors a single-project structure with folders over multi-project Clean Architecture splits when the scale doesn't warrant it. Confidence: 0.8
-- Prefers simple, DRY code implementations over complex abstractions — explicitly says "implement simple code" when requesting feature implementation. Confidence: 0.7
+- Prefers simple, DRY code implementations over complex abstractions — explicitly says "implement simple code" and "provide simple and non repeatative code" when requesting feature implementation. Confidence: 0.8
 - Prefers phased/incremental implementation — asks for structure/config first, then logic, then controllers in separate steps, with explicit "do not implement X yet" constraints to control the pace. Confidence: 0.7
 - Prefers concise explanations after changes — asks to "explain the structure briefly" rather than receiving lengthy summaries. Confidence: 0.7
 - Prefers communication in English. Even though the user occasionally uses Banglish, they explicitly asked to "stay with English" when the assistant switched to Bengali. Confidence: 0.9
@@ -17,4 +17,5 @@
 - Prefers soft-delete (activate/deactivate) over hard-delete for entities that may be referenced by other records, preserving referential integrity. Confidence: 0.7
 - Requires server-side validation to always be implemented independently, even when the frontend will also validate — explicitly states "the validation must exist on the server side even though the frontend will also validate it." Confidence: 0.8
 - Prefers building and fixing errors after each implementation step before moving on — explicitly requests "build the project after implementation and fix any errors." Confidence: 0.7
+- Expects runtime/functional verification beyond just builds — asks terse questions like "check everything working fine or not" or "done?" expecting the agent to run the app and smoke-test all endpoints end-to-end (including error paths like 404/409/400), not just confirm compilation. Confidence: 0.7
 - Uses markdown spec files (e.g., `promt.md`) in the project root to define feature requirements, then asks the agent to read the file and implement it rather than providing inline instructions. Confidence: 0.6

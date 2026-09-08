@@ -15,6 +15,14 @@ public class StockTransactionsController : ControllerBase
         _service = service;
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<StockTransactionResponseDto>>> GetList([FromQuery] StockTransactionFilterDto filter, CancellationToken ct)
+        => Ok(await _service.GetListAsync(filter, ct));
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<StockTransactionResponseDto>> GetById(int id, CancellationToken ct)
+        => Ok(await _service.GetByIdAsync(id, ct));
+
     [HttpPost("receive")]
     public async Task<ActionResult<StockTransactionResponseDto>> CreateReceive([FromBody] CreateStockTransactionDto dto, CancellationToken ct)
     {

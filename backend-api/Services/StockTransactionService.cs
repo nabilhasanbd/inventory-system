@@ -18,6 +18,45 @@ public class StockTransactionService : IStockTransactionService
         _balanceService = balanceService;
     }
 
+    public async Task<IEnumerable<StockTransactionResponseDto>> GetListAsync(StockTransactionFilterDto filter, CancellationToken ct)
+    {
+        var query = _db.StockTransactions
+            .Include(t => t.Store)
+            .Include(t => t.Details).ThenInclude(d => d.Item)
+            .AsNoTracking();
+
+        if (filter.FromDate.HasValue)
+        {
+            var from = DateTime.SpecifyKind(filter.FromDate.Value, DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate >= from);
+        }
+        if (filter.ToDate.HasValue)
+        {
+            var to = DateTime.SpecifyKind(filter.ToDate.Value, DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate <= to);
+        }
+        if (filter.TransactionType.HasValue)
+            query = query.Where(t => t.TransactionType == filter.TransactionType.Value);
+        if (filter.StoreId.HasValue)
+            query = query.Where(t => t.StoreId == filter.StoreId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.TransactionNo))
+            query = query.Where(t => t.TransactionNo.Contains(filter.TransactionNo));
+
+        var transactions = await query.OrderByDescending(t => t.TransactionDate).ToListAsync(ct);
+        return transactions.Select(Map).ToList();
+    }
+
+    public async Task<StockTransactionResponseDto> GetByIdAsync(int id, CancellationToken ct)
+    {
+        var transaction = await _db.StockTransactions
+            .Include(t => t.Store)
+            .Include(t => t.Details).ThenInclude(d => d.Item)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id, ct)
+            ?? throw new NotFoundException($"Transaction with id {id} was not found.");
+        return Map(transaction);
+    }
+
     public async Task<StockTransactionResponseDto> CreateReceiveAsync(CreateStockTransactionDto dto, CancellationToken ct)
     {
         var store = await ValidateHeaderAsync(dto, ct);
@@ -31,7 +70,7 @@ public class StockTransactionService : IStockTransactionService
             await _balanceService.IncreaseStockAsync(store.Id, d.ItemId, d.Quantity, ct);
 
         await tx.CommitAsync(ct);
-        return Map(transaction);
+        return await GetByIdAsync(transaction.Id, ct);
     }
 
     public async Task<StockTransactionResponseDto> CreateIssueAsync(CreateStockTransactionDto dto, CancellationToken ct)
@@ -58,7 +97,7 @@ public class StockTransactionService : IStockTransactionService
             await _balanceService.DecreaseStockAsync(store.Id, d.ItemId, d.Quantity, ct);
 
         await tx.CommitAsync(ct);
-        return Map(transaction);
+        return await GetByIdAsync(transaction.Id, ct);
     }
 
     private async Task<Store> ValidateHeaderAsync(CreateStockTransactionDto dto, CancellationToken ct)
@@ -114,11 +153,15 @@ public class StockTransactionService : IStockTransactionService
         TransactionDate = t.TransactionDate,
         TransactionType = t.TransactionType.ToString(),
         StoreId = t.StoreId,
+        StoreCode = t.Store?.Code ?? string.Empty,
+        StoreName = t.Store?.Name ?? string.Empty,
         Remarks = t.Remarks,
         Details = t.Details.Select(d => new StockTransactionDetailResponseDto
         {
             Id = d.Id,
             ItemId = d.ItemId,
+            ItemCode = d.Item?.ItemCode ?? string.Empty,
+            ItemName = d.Item?.ItemName ?? string.Empty,
             Quantity = d.Quantity,
             Unit = d.Unit,
             Remarks = d.Remarks

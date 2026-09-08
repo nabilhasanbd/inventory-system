@@ -1,42 +1,56 @@
-promt 10
+Now implement UPDATE for stock transactions.
 
-Now implement Stock Transaction creation for RECEIVE transactions only.
+The update must support:
 
-A transaction contains:
+- existing details modified
+- new details added
+- existing details deleted
 
-Header:
-- TransactionNo
-- TransactionDate
-- TransactionType
-- StoreId
-- Remarks
+Example:
 
-Details:
-- ItemId
-- Quantity
-- Unit
-- Remarks
+Existing database details:
+- Laptop qty 10
+- Keyboard qty 20
+- Mouse qty 15
 
-Requirements:
+Updated request:
+- Laptop qty 15
+- Keyboard qty 20
+- Monitor qty 5
 
-1. One transaction can contain multiple details.
-2. TransactionNo must be unique.
-3. At least one detail is required.
-4. Quantity must be greater than zero.
-5. Item must exist and be active.
-6. Store must exist and be active.
-7. The entire operation must execute inside one database transaction.
-8. Create the transaction header.
-9. Create all transaction details.
-10. Increase StockBalance for every detail.
-11. If any operation fails, rollback everything.
+Expected result:
+- Laptop -> modified
+- Keyboard -> unchanged
+- Mouse -> deleted
+- Monitor -> inserted
 
-Do not implement Issue yet.
+The backend must identify these correctly using detail IDs.
 
-Use request/response DTOs.
+Most importantly, stock must remain correct.
 
-Do not put the transaction processing logic inside the controller.
+For Receive:
+- changing 10 to 15 increases stock by 5
+- changing 15 to 10 decreases stock by 5
+- deleting a received detail reverses its stock effect
+- adding a new received detail increases stock
 
-Build and test the project.
+For Issue:
+- changing the issue quantity must adjust stock using the difference
+- increasing an issue quantity must verify additional available stock
+- decreasing an issue quantity must restore the difference
+- deleting an issue detail must restore the issued quantity
+- adding a new issue detail must validate available stock
+
+The entire update must execute in one database transaction.
+
+If any validation fails, rollback all changes.
+
+Do not implement delete transaction yet.
 
 provide simple and non repeatative code 
+Build and test carefully.
+
+
+
+
+
