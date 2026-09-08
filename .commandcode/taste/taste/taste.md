@@ -15,5 +15,6 @@
 - Prefers DTOs over exposing EF entities directly in API contracts — explicitly requests separate Create, Update, and Response DTOs. Confidence: 0.8
 - Prefers a service-layer architecture with thin controllers — business logic (validation, uniqueness checks, mapping) lives in services, controllers just delegate and return results. Confidence: 0.8
 - Prefers soft-delete (activate/deactivate) over hard-delete for entities that may be referenced by other records, preserving referential integrity. Confidence: 0.7
+- Requires server-side validation to always be implemented independently, even when the frontend will also validate — explicitly states "the validation must exist on the server side even though the frontend will also validate it." Confidence: 0.8
 - Prefers building and fixing errors after each implementation step before moving on — explicitly requests "build the project after implementation and fix any errors." Confidence: 0.7
 - Uses markdown spec files (e.g., `promt.md`) in the project root to define feature requirements, then asks the agent to read the file and implement it rather than providing inline instructions. Confidence: 0.6

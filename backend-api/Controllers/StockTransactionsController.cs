@@ -21,4 +21,11 @@ public class StockTransactionsController : ControllerBase
         var created = await _service.CreateReceiveAsync(dto, ct);
         return Created($"/api/stocktransactions/{created.Id}", created);
     }
+
+    [HttpPost("issue")]
+    public async Task<ActionResult<StockTransactionResponseDto>> CreateIssue([FromBody] CreateStockTransactionDto dto, CancellationToken ct)
+    {
+        var created = await _service.CreateIssueAsync(dto, ct);
+        return Created($"/api/stocktransactions/{created.Id}", created);
+    }
 }
