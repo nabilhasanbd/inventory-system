@@ -8,4 +8,5 @@ public interface IStockTransactionService
     Task<StockTransactionResponseDto> GetByIdAsync(int id, CancellationToken ct);
     Task<StockTransactionResponseDto> CreateReceiveAsync(CreateStockTransactionDto dto, CancellationToken ct);
     Task<StockTransactionResponseDto> CreateIssueAsync(CreateStockTransactionDto dto, CancellationToken ct);
+    Task<StockTransactionResponseDto> UpdateAsync(int id, UpdateStockTransactionDto dto, CancellationToken ct);
 }

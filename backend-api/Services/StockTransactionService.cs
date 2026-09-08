@@ -100,6 +100,120 @@ public class StockTransactionService : IStockTransactionService
         return await GetByIdAsync(transaction.Id, ct);
     }
 
+    public async Task<StockTransactionResponseDto> UpdateAsync(int id, UpdateStockTransactionDto dto, CancellationToken ct)
+    {
+        var transaction = await _db.StockTransactions
+            .Include(t => t.Details)
+            .FirstOrDefaultAsync(t => t.Id == id, ct)
+            ?? throw new NotFoundException($"Transaction with id {id} was not found.");
+
+        var direction = transaction.TransactionType == TransactionType.Receipt ? 1 : -1;
+        var storeId = transaction.StoreId;
+
+        var oldQty = transaction.Details
+            .GroupBy(d => d.ItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(d => d.Quantity));
+
+        var existingById = transaction.Details.ToDictionary(d => d.Id);
+        var itemIds = new HashSet<int>();
+        foreach (var d in dto.Details)
+        {
+            if (d.Id > 0)
+            {
+                if (!existingById.TryGetValue(d.Id, out var existing))
+                    throw new ConflictException($"Detail with id {d.Id} does not belong to transaction {id}.");
+                if (d.ItemId > 0 && d.ItemId != existing.ItemId)
+                    throw new ConflictException($"Cannot change item of detail {d.Id}.");
+                itemIds.Add(existing.ItemId);
+            }
+            else
+            {
+                if (d.ItemId <= 0)
+                    throw new BadRequestException("ItemId is required for new details.");
+                itemIds.Add(d.ItemId);
+            }
+        }
+
+        var items = await _db.Items.Where(i => itemIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
+        foreach (var itemId in itemIds)
+        {
+            if (!items.TryGetValue(itemId, out var item))
+                throw new NotFoundException($"Item with id {itemId} was not found.");
+            if (!item.IsActive)
+                throw new ConflictException($"Item with id {itemId} is not active.");
+        }
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        var matched = new HashSet<int>();
+        foreach (var d in dto.Details)
+        {
+            if (d.Id > 0 && existingById.TryGetValue(d.Id, out var existing))
+            {
+                existing.Quantity = d.Quantity;
+                existing.Unit = d.Unit;
+                existing.Remarks = d.Remarks;
+                matched.Add(d.Id);
+            }
+            else
+            {
+                transaction.Details.Add(new StockTransactionDetail
+                {
+                    ItemId = d.ItemId,
+                    Quantity = d.Quantity,
+                    Unit = d.Unit,
+                    Remarks = d.Remarks
+                });
+            }
+        }
+
+        var toRemove = transaction.Details.Where(d => d.Id != 0 && !matched.Contains(d.Id)).ToList();
+        foreach (var d in toRemove)
+            transaction.Details.Remove(d);
+
+        if (dto.TransactionDate.HasValue)
+            transaction.TransactionDate = dto.TransactionDate.Value;
+        if (dto.Remarks is not null)
+            transaction.Remarks = dto.Remarks;
+
+        await _db.SaveChangesAsync(ct);
+
+        var newQty = transaction.Details
+            .GroupBy(d => d.ItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(d => d.Quantity));
+
+        var deltas = new Dictionary<int, decimal>();
+        foreach (var itemId in oldQty.Keys.Union(newQty.Keys))
+        {
+            oldQty.TryGetValue(itemId, out var oldQ);
+            newQty.TryGetValue(itemId, out var newQ);
+            var delta = direction * (newQ - oldQ);
+            if (delta != 0m)
+                deltas[itemId] = delta;
+        }
+
+        foreach (var (itemId, delta) in deltas)
+        {
+            if (delta < 0)
+            {
+                var available = await _balanceService.GetCurrentStockAsync(storeId, itemId, ct);
+                if (available < -delta)
+                    throw new ConflictException($"Insufficient stock for item {itemId}. Available: {available}, required: {-delta}.");
+            }
+        }
+
+        foreach (var (itemId, delta) in deltas)
+        {
+            if (delta > 0)
+                await _balanceService.IncreaseStockAsync(storeId, itemId, delta, ct);
+            else if (delta < 0)
+                await _balanceService.DecreaseStockAsync(storeId, itemId, -delta, ct);
+        }
+
+        await tx.CommitAsync(ct);
+        return await GetByIdAsync(transaction.Id, ct);
+    }
+
     private async Task<Store> ValidateHeaderAsync(CreateStockTransactionDto dto, CancellationToken ct)
     {
         if (await _db.StockTransactions.AnyAsync(t => t.TransactionNo == dto.TransactionNo, ct))

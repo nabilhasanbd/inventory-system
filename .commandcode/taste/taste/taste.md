@@ -18,4 +18,4 @@
 - Requires server-side validation to always be implemented independently, even when the frontend will also validate — explicitly states "the validation must exist on the server side even though the frontend will also validate it." Confidence: 0.8
 - Prefers building and fixing errors after each implementation step before moving on — explicitly requests "build the project after implementation and fix any errors." Confidence: 0.7
 - Expects runtime/functional verification beyond just builds — asks terse questions like "check everything working fine or not" or "done?" expecting the agent to run the app and smoke-test all endpoints end-to-end (including error paths like 404/409/400), not just confirm compilation. Confidence: 0.7
-- Uses markdown spec files (e.g., `promt.md`) in the project root to define feature requirements, then asks the agent to read the file and implement it rather than providing inline instructions. Confidence: 0.6
+- Uses markdown spec files (e.g., `promt.md`) in the project root to define feature requirements, then asks the agent to read the file and implement it rather than providing inline instructions. Confidence: 0.7

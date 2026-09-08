@@ -36,4 +36,11 @@ public class StockTransactionsController : ControllerBase
         var created = await _service.CreateIssueAsync(dto, ct);
         return Created($"/api/stocktransactions/{created.Id}", created);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<StockTransactionResponseDto>> Update(int id, [FromBody] UpdateStockTransactionDto dto, CancellationToken ct)
+    {
+        var updated = await _service.UpdateAsync(id, dto, ct);
+        return Ok(updated);
+    }
 }
