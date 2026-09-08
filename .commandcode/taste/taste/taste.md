@@ -15,3 +15,4 @@
 - Prefers a service-layer architecture with thin controllers — business logic (validation, uniqueness checks, mapping) lives in services, controllers just delegate and return results. Confidence: 0.8
 - Prefers soft-delete (activate/deactivate) over hard-delete for entities that may be referenced by other records, preserving referential integrity. Confidence: 0.7
 - Prefers building and fixing errors after each implementation step before moving on — explicitly requests "build the project after implementation and fix any errors." Confidence: 0.7
+- Uses markdown spec files (e.g., `promt.md`) in the project root to define feature requirements, then asks the agent to read the file and implement it rather than providing inline instructions. Confidence: 0.6
