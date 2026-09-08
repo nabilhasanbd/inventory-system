@@ -1,4 +1,4 @@
-
+promt 10
 
 Now implement Stock Transaction creation for RECEIVE transactions only.
 
@@ -38,3 +38,5 @@ Use request/response DTOs.
 Do not put the transaction processing logic inside the controller.
 
 Build and test the project.
+
+provide simple and non repeatative code 
