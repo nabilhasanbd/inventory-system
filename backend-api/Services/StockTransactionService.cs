@@ -269,7 +269,9 @@ public class StockTransactionService : IStockTransactionService
         var transaction = new StockTransaction
         {
             TransactionNo = dto.TransactionNo,
-            TransactionDate = dto.TransactionDate ?? DateTime.UtcNow,
+            TransactionDate = dto.TransactionDate.HasValue
+                ? DateTime.SpecifyKind(dto.TransactionDate.Value, DateTimeKind.Utc)
+                : DateTime.UtcNow,
             TransactionType = type,
             StoreId = store.Id,
             Remarks = dto.Remarks

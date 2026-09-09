@@ -1,8 +1,11 @@
+import StockTransactionForm from '../components/StockTransactionForm'
+
 export default function StockTransactionsPage() {
   return (
     <div className="page">
       <h1>Stock Transactions</h1>
-      <p>Create and view stock transactions (receive / issue) (to be implemented).</p>
+      <p className="page-subtitle">Create a Receive or Issue transaction.</p>
+      <StockTransactionForm />
     </div>
   )
 }

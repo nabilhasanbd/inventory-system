@@ -12,6 +12,7 @@
 - Prefers communication in English. Even though the user occasionally uses Banglish, they explicitly asked to "stay with English" when the assistant switched to Bengali. Confidence: 0.9
 - Prefers EF Core Fluent API over data annotations for entity configuration — explicitly states "Use EF Core Fluent API where appropriate." Confidence: 0.8
 - Prefers not to modify existing design/code unless there is a real problem — explicitly says "do not change the entity design unless there is a real problem" when requesting next-step work. Confidence: 0.7
+- Prefers minimal blast radius when implementing a new feature — explicitly says "do not modify unrelated pages" (or similar scope-limiting constraints), expecting changes to be confined to the task's scope without touching other parts of the codebase. Confidence: 0.7
 - Prefers idempotent database operations — explicitly asks that seed data be "safe to run without creating duplicate master records," favoring check-before-insert patterns over blind inserts or drop-and-recreate approaches. Confidence: 0.7
 - Prefers DTOs over exposing EF entities directly in API contracts — explicitly requests separate Create, Update, and Response DTOs. Confidence: 0.8
 - Prefers a service-layer architecture with thin controllers — business logic (validation, uniqueness checks, mapping) lives in services, controllers just delegate and return results. Confidence: 0.8

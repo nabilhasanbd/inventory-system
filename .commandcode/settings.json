@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Shell(curl.exe:*)",
-      "powershell"
+      "powershell",
+      "Shell(npm:*)"
     ],
     "deny": [],
     "defaultMode": "default"
