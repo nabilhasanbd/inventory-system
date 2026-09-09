@@ -4,6 +4,7 @@
 - Tends to give very terse, direct commands (e.g., "create a .net project") when requesting implementation, in contrast to detailed, structured instructions when requesting analysis or inspection. Confidence: 0.6
 - Wants scaffolded/template boilerplate removed from projects — example files, stale references, and non-essential generated code should be cleaned up promptly after scaffolding. Confidence: 0.8
 - Tech stack of choice: ASP.NET Core Web API (backend), Entity Framework Core (ORM), PostgreSQL (database), React (frontend). Confidence: 0.7
+- Frontend tooling specifics: Vite + React + TypeScript (strict mode), axios for HTTP, react-router-dom v6 for routing, dev-proxy to backend (avoiding CORS in dev). Accepted without objection when scaffolded. Confidence: 0.6
 - Prefers practical, non-over-engineered architecture — explicitly says "do not over-engineer it" and favors a single-project structure with folders over multi-project Clean Architecture splits when the scale doesn't warrant it. Confidence: 0.8
 - Prefers simple, DRY code implementations over complex abstractions — explicitly says "implement simple code" and "provide simple and non repeatative code" when requesting feature implementation. Confidence: 0.8
 - Prefers phased/incremental implementation — asks for structure/config first, then logic, then controllers in separate steps, with explicit "do not implement X yet" constraints to control the pace. Confidence: 0.7
