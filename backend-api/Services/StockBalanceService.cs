@@ -2,6 +2,8 @@ using backend_api.Common;
 using backend_api.Data;
 using backend_api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace backend_api.Services;
 
@@ -14,6 +16,7 @@ public class StockBalanceService : IStockBalanceService
         _db = db;
     }
 
+    // Advisory read (no lock) - used for fail-fast pre-checks. Not concurrency-safe on its own.
     public async Task<decimal> GetCurrentStockAsync(int storeId, int itemId, CancellationToken ct)
     {
         var balance = await _db.StockBalances
@@ -32,21 +35,31 @@ public class StockBalanceService : IStockBalanceService
         if (!await _db.Items.AnyAsync(i => i.Id == itemId, ct))
             throw new NotFoundException($"Item with id {itemId} was not found.");
 
-        var balance = await _db.StockBalances
-            .FirstOrDefaultAsync(b => b.StoreId == storeId && b.ItemId == itemId, ct);
-
-        if (balance is null)
+        var current = await LockQuantityAsync(storeId, itemId, ct);
+        if (current.HasValue)
         {
-            balance = new StockBalance { StoreId = storeId, ItemId = itemId, Quantity = quantity };
-            _db.StockBalances.Add(balance);
-        }
-        else
-        {
-            balance.Quantity += quantity;
+            var newQty = current.Value + quantity;
+            await SetQuantityAsync(storeId, itemId, newQty, ct);
+            return newQty;
         }
 
-        await _db.SaveChangesAsync(ct);
-        return balance.Quantity;
+        // No row exists yet - nothing to lock. Insert; the unique constraint guards the
+        // rare concurrent-create race (a second request gets 23505 and recovers below).
+        try
+        {
+            await ExecAsync(
+                @"INSERT INTO ""StockBalances"" (""StoreId"", ""ItemId"", ""Quantity"") VALUES (@s, @i, @q)",
+                new (string, object)[] { ("@s", storeId), ("@i", itemId), ("@q", quantity) }, ct);
+            return quantity;
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
+        {
+            // Another request inserted first; lock it and add to it.
+            var existing = await LockQuantityAsync(storeId, itemId, ct) ?? 0m;
+            var newQty = existing + quantity;
+            await SetQuantityAsync(storeId, itemId, newQty, ct);
+            return newQty;
+        }
     }
 
     public async Task<decimal> DecreaseStockAsync(int storeId, int itemId, decimal quantity, CancellationToken ct)
@@ -54,15 +67,50 @@ public class StockBalanceService : IStockBalanceService
         if (quantity <= 0)
             throw new BadRequestException("Quantity must be greater than zero.");
 
-        var balance = await _db.StockBalances
-            .FirstOrDefaultAsync(b => b.StoreId == storeId && b.ItemId == itemId, ct)
+        var current = await LockQuantityAsync(storeId, itemId, ct)
             ?? throw new ConflictException($"No stock balance found for store {storeId}, item {itemId}.");
 
-        if (balance.Quantity < quantity)
-            throw new ConflictException($"Insufficient stock. Available: {balance.Quantity}, requested: {quantity}.");
+        if (current < quantity)
+            throw new ConflictException($"Insufficient stock. Available: {current}, requested: {quantity}.");
 
-        balance.Quantity -= quantity;
-        await _db.SaveChangesAsync(ct);
-        return balance.Quantity;
+        var newQty = current - quantity;
+        await SetQuantityAsync(storeId, itemId, newQty, ct);
+        return newQty;
+    }
+
+    // Locks the row with SELECT ... FOR UPDATE and returns its quantity, or null if no row exists.
+    // Must run inside the caller's database transaction so the row lock is held until commit.
+    private async Task<decimal?> LockQuantityAsync(int storeId, int itemId, CancellationToken ct)
+    {
+        await using var cmd = CreateCommand(
+            @"SELECT ""Quantity"" FROM ""StockBalances"" WHERE ""StoreId"" = @s AND ""ItemId"" = @i FOR UPDATE",
+            new (string, object)[] { ("@s", storeId), ("@i", itemId) });
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is null ? null : Convert.ToDecimal(result);
+    }
+
+    private async Task SetQuantityAsync(int storeId, int itemId, decimal newQty, CancellationToken ct)
+    {
+        await ExecAsync(
+            @"UPDATE ""StockBalances"" SET ""Quantity"" = @q WHERE ""StoreId"" = @s AND ""ItemId"" = @i",
+            new (string, object)[] { ("@q", newQty), ("@s", storeId), ("@i", itemId) }, ct);
+    }
+
+    private NpgsqlCommand CreateCommand(string sql, (string Name, object Value)[] args)
+    {
+        var conn = (NpgsqlConnection)_db.Database.GetDbConnection();
+        var cmd = conn.CreateCommand();
+        if (_db.Database.CurrentTransaction?.GetDbTransaction() is NpgsqlTransaction t)
+            cmd.Transaction = t;
+        cmd.CommandText = sql;
+        foreach (var (name, value) in args)
+            cmd.Parameters.Add(new NpgsqlParameter { ParameterName = name, Value = value });
+        return cmd;
+    }
+
+    private async Task ExecAsync(string sql, (string Name, object Value)[] args, CancellationToken ct)
+    {
+        await using var cmd = CreateCommand(sql, args);
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }
