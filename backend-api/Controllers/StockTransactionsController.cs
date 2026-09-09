@@ -43,4 +43,11 @@ public class StockTransactionsController : ControllerBase
         var updated = await _service.UpdateAsync(id, dto, ct);
         return Ok(updated);
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _service.DeleteAsync(id, ct);
+        return NoContent();
+    }
 }

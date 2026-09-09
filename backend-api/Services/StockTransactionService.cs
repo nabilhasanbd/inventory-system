@@ -192,6 +192,36 @@ public class StockTransactionService : IStockTransactionService
                 deltas[itemId] = delta;
         }
 
+        await ApplyStockDeltasAsync(storeId, deltas, ct);
+
+        await tx.CommitAsync(ct);
+        return await GetByIdAsync(transaction.Id, ct);
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken ct)
+    {
+        var transaction = await _db.StockTransactions
+            .Include(t => t.Details)
+            .FirstOrDefaultAsync(t => t.Id == id, ct)
+            ?? throw new NotFoundException($"Transaction with id {id} was not found.");
+
+        var direction = transaction.TransactionType == TransactionType.Receipt ? 1 : -1;
+        var storeId = transaction.StoreId;
+
+        // Deleting reverses the stock effect (newQty becomes 0): delta = -direction * qty.
+        var deltas = transaction.Details
+            .GroupBy(d => d.ItemId)
+            .ToDictionary(g => g.Key, g => -direction * g.Sum(d => d.Quantity));
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await ApplyStockDeltasAsync(storeId, deltas, ct);
+        _db.StockTransactions.Remove(transaction);
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
+    private async Task ApplyStockDeltasAsync(int storeId, Dictionary<int, decimal> deltas, CancellationToken ct)
+    {
         foreach (var (itemId, delta) in deltas)
         {
             if (delta < 0)
@@ -209,9 +239,6 @@ public class StockTransactionService : IStockTransactionService
             else if (delta < 0)
                 await _balanceService.DecreaseStockAsync(storeId, itemId, -delta, ct);
         }
-
-        await tx.CommitAsync(ct);
-        return await GetByIdAsync(transaction.Id, ct);
     }
 
     private async Task<Store> ValidateHeaderAsync(CreateStockTransactionDto dto, CancellationToken ct)

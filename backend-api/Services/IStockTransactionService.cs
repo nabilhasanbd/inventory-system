@@ -9,4 +9,5 @@ public interface IStockTransactionService
     Task<StockTransactionResponseDto> CreateReceiveAsync(CreateStockTransactionDto dto, CancellationToken ct);
     Task<StockTransactionResponseDto> CreateIssueAsync(CreateStockTransactionDto dto, CancellationToken ct);
     Task<StockTransactionResponseDto> UpdateAsync(int id, UpdateStockTransactionDto dto, CancellationToken ct);
+    Task DeleteAsync(int id, CancellationToken ct);
 }
