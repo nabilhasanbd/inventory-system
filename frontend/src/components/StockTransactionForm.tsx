@@ -14,6 +14,7 @@ interface DetailRow {
   unit: string
   remarks: string
   available: number | null
+  stockNotice: string | null
 }
 
 interface FormState {
@@ -28,11 +29,12 @@ interface FormErrors {
   transactionNo?: string
   transactionDate?: string
   storeId?: string
+  details?: string
   rows: string[]
 }
 
 function emptyDetail(): DetailRow {
-  return { itemId: '', quantity: '', unit: '', remarks: '', available: null }
+  return { itemId: '', quantity: '', unit: '', remarks: '', available: null, stockNotice: null }
 }
 
 function today(): string {
@@ -53,6 +55,7 @@ export default function StockTransactionForm() {
   const [items, setItems] = useState<Item[]>([])
   const [stores, setStores] = useState<Store[]>([])
   const [metaLoading, setMetaLoading] = useState(true)
+  const [metaError, setMetaError] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(initialForm)
   const [details, setDetails] = useState<DetailRow[]>([emptyDetail()])
   const [errors, setErrors] = useState<FormErrors>({ rows: [] })
@@ -69,8 +72,8 @@ export default function StockTransactionForm() {
         if (!active) return
         setItems(i)
         setStores(s)
-      } catch {
-        // selects will remain empty; submission will surface the server error
+      } catch (err) {
+        if (active) setMetaError(extractError(err))
       } finally {
         if (active) setMetaLoading(false)
       }
@@ -81,14 +84,25 @@ export default function StockTransactionForm() {
   }, [])
 
   const detailsRef = useRef(details)
+  const stockRequestIds = useRef<number[]>([])
   useEffect(() => {
     detailsRef.current = details
   }, [details])
 
   function fetchAvailable(index: number, storeId: number, itemId: number) {
-    setDetails((prev) => prev.map((r, i) => (i === index ? { ...r, available: null } : r)))
+    const requestId = (stockRequestIds.current[index] ?? 0) + 1
+    stockRequestIds.current[index] = requestId
+    setDetails((prev) => prev.map((r, i) => (i === index ? { ...r, available: null, stockNotice: null } : r)))
     getAvailableStock(storeId, itemId)
-      .then((qty) => setDetails((prev) => prev.map((r, i) => (i === index ? { ...r, available: qty } : r))))
+      .then((qty) =>
+        setDetails((prev) =>
+          prev.map((r, i) =>
+            i === index && stockRequestIds.current[index] === requestId && r.itemId === String(itemId)
+              ? { ...r, available: qty }
+              : r,
+          ),
+        ),
+      )
       .catch(() => {
         /* leave available as null */
       })
@@ -111,21 +125,68 @@ export default function StockTransactionForm() {
 
   function addRow() {
     setDetails((d) => [...d, emptyDetail()])
+    setErrors((e) => ({ ...e, rows: [...e.rows, ''] }))
   }
 
   function removeRow(index: number) {
     setDetails((d) => d.filter((_, i) => i !== index))
+    setErrors((e) => ({ ...e, rows: e.rows.filter((_, i) => i !== index) }))
   }
 
   function updateRow<K extends keyof DetailRow>(index: number, field: K, value: DetailRow[K]) {
     setDetails((d) => d.map((r, i) => (i === index ? { ...r, [field]: value } : r)))
   }
 
+  function availableForRow(index: number, rows = details): number | null {
+    const row = rows[index]
+    if (row.available === null || !row.itemId) return null
+
+    const quantityInOtherRows = rows.reduce((total, other, otherIndex) => {
+      if (otherIndex === index || other.itemId !== row.itemId) return total
+      const quantity = Number(other.quantity)
+      return total + (Number.isFinite(quantity) && quantity > 0 ? quantity : 0)
+    }, 0)
+
+    return Math.max(0, row.available - quantityInOtherRows)
+  }
+
+  function onQuantityChange(index: number, value: string) {
+    if (form.transactionType !== 'Issue' || value.trim() === '') {
+      updateRow(index, 'quantity', value)
+      return
+    }
+
+    const quantity = Number(value)
+    const limit = availableForRow(index)
+    if (Number.isFinite(quantity) && limit !== null && quantity > limit) {
+      setDetails((rows) =>
+        rows.map((row, rowIndex) =>
+          rowIndex === index
+            ? {
+                ...row,
+                quantity: String(limit),
+                stockNotice: `Quantity is limited to ${limit}, the stock available for this row.`,
+              }
+            : row,
+        ),
+      )
+      return
+    }
+
+    setDetails((rows) =>
+      rows.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, quantity: value, stockNotice: null } : row,
+      ),
+    )
+  }
+
   function onItemChange(index: number, itemIdStr: string) {
     const item = items.find((i) => String(i.id) === itemIdStr)
     const newUnit = item?.unit ?? ''
     setDetails((d) =>
-      d.map((r, i) => (i === index ? { ...r, itemId: itemIdStr, unit: newUnit, available: null } : r)),
+      d.map((r, i) =>
+        i === index ? { ...r, itemId: itemIdStr, unit: newUnit, available: null, stockNotice: null } : r,
+      ),
     )
     if (form.transactionType === 'Issue' && form.storeId && itemIdStr) {
       fetchAvailable(index, Number(form.storeId), Number(itemIdStr))
@@ -137,17 +198,33 @@ export default function StockTransactionForm() {
     if (!form.transactionNo.trim()) e.transactionNo = 'Transaction No. is required'
     if (!form.transactionDate) e.transactionDate = 'Transaction Date is required'
     if (!form.storeId) e.storeId = 'Store is required'
+    if (details.length === 0) e.details = 'Add at least one detail row'
+    const requestedByItem = details.reduce<Record<string, number>>((totals, row) => {
+      const quantity = Number(row.quantity)
+      if (row.itemId && Number.isFinite(quantity) && quantity > 0) {
+        totals[row.itemId] = (totals[row.itemId] ?? 0) + quantity
+      }
+      return totals
+    }, {})
     e.rows = details.map((row) => {
       const re: string[] = []
       if (!row.itemId) re.push('Item is required')
+      if (!row.unit.trim()) re.push('Unit is required')
       const qty = Number(row.quantity)
       if (row.quantity.trim() === '' || isNaN(qty)) re.push('Quantity is required')
       else if (qty <= 0) re.push('Quantity must be > 0')
+      if (form.transactionType === 'Issue' && row.itemId && form.storeId) {
+        if (row.available === null) {
+          re.push('Available stock is still loading. Please wait and try again')
+        } else if (requestedByItem[row.itemId] > row.available) {
+          re.push(`Requested total (${requestedByItem[row.itemId]}) exceeds available stock (${row.available})`)
+        }
+      }
       return re.join('; ')
     })
     setErrors(e)
     const hasRowError = e.rows.some((r) => r !== '')
-    return !e.transactionNo && !e.transactionDate && !e.storeId && !hasRowError && details.length > 0
+    return !e.transactionNo && !e.transactionDate && !e.storeId && !e.details && !hasRowError
   }
 
   async function handleSubmit(ev: FormEvent) {
@@ -189,14 +266,20 @@ export default function StockTransactionForm() {
     return <p>Loading form...</p>
   }
 
+  if (metaError) {
+    return <div className="alert alert-error">Unable to load items and stores: {metaError}</div>
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-section">
         <h3>Header</h3>
         <div className="form-grid">
           <div className="form-field">
-            <label>Transaction No.</label>
+            <label htmlFor="transaction-no">Transaction No.</label>
             <input
+              id="transaction-no"
+              required
               value={form.transactionNo}
               onChange={(e) => updateForm('transactionNo', e.target.value)}
               disabled={submitting}
@@ -204,9 +287,11 @@ export default function StockTransactionForm() {
             {errors.transactionNo && <div className="field-error">{errors.transactionNo}</div>}
           </div>
           <div className="form-field">
-            <label>Transaction Date</label>
+            <label htmlFor="transaction-date">Transaction Date</label>
             <input
+              id="transaction-date"
               type="date"
+              required
               value={form.transactionDate}
               onChange={(e) => updateForm('transactionDate', e.target.value)}
               disabled={submitting}
@@ -214,8 +299,9 @@ export default function StockTransactionForm() {
             {errors.transactionDate && <div className="field-error">{errors.transactionDate}</div>}
           </div>
           <div className="form-field">
-            <label>Transaction Type</label>
+            <label htmlFor="transaction-type">Transaction Type</label>
             <select
+              id="transaction-type"
               value={form.transactionType}
               onChange={(e) => updateForm('transactionType', e.target.value as TransactionType)}
               disabled={submitting}
@@ -225,8 +311,10 @@ export default function StockTransactionForm() {
             </select>
           </div>
           <div className="form-field">
-            <label>Store</label>
+            <label htmlFor="store">Store</label>
             <select
+              id="store"
+              required
               value={form.storeId}
               onChange={(e) => updateForm('storeId', e.target.value)}
               disabled={submitting}
@@ -241,8 +329,9 @@ export default function StockTransactionForm() {
             {errors.storeId && <div className="field-error">{errors.storeId}</div>}
           </div>
           <div className="form-field form-field-wide">
-            <label>Remarks</label>
+            <label htmlFor="transaction-remarks">Remarks</label>
             <input
+              id="transaction-remarks"
               value={form.remarks}
               onChange={(e) => updateForm('remarks', e.target.value)}
               disabled={submitting}
@@ -258,10 +347,12 @@ export default function StockTransactionForm() {
             + Add Row
           </button>
         </div>
+        {errors.details && <div className="field-error">{errors.details}</div>}
         <table className="data-table detail-grid">
           <thead>
             <tr>
               <th>Item</th>
+              <th>Date</th>
               <th>Quantity</th>
               <th>Unit</th>
               <th>Remarks</th>
@@ -277,11 +368,14 @@ export default function StockTransactionForm() {
                 row.available !== null &&
                 row.quantity.trim() !== '' &&
                 !isNaN(qty) &&
-                qty > row.available
+                qty > (availableForRow(index) ?? row.available)
+              const rowLimit = form.transactionType === 'Issue' ? availableForRow(index) : null
               return (
                 <tr key={index}>
                   <td>
                     <select
+                      aria-label={`Item for detail row ${index + 1}`}
+                      required
                       value={row.itemId}
                       onChange={(e) => onItemChange(index, e.target.value)}
                       disabled={submitting}
@@ -297,17 +391,32 @@ export default function StockTransactionForm() {
                   </td>
                   <td>
                     <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={row.quantity}
-                      onChange={(e) => updateRow(index, 'quantity', e.target.value)}
-                      disabled={submitting}
+                      aria-label={`Date for detail row ${index + 1}`}
+                      type="date"
+                      value={form.transactionDate}
+                      disabled
+                      title="Detail dates use the transaction date."
                     />
-                    {exceeds && <div className="field-warning">Exceeds available stock</div>}
                   </td>
                   <td>
                     <input
+                      aria-label={`Quantity for detail row ${index + 1}`}
+                      type="number"
+                      min="0.001"
+                      max={rowLimit ?? undefined}
+                      step="any"
+                      required
+                      value={row.quantity}
+                      onChange={(e) => onQuantityChange(index, e.target.value)}
+                      disabled={submitting}
+                    />
+                    {exceeds && <div className="field-error">Requested quantity exceeds available stock</div>}
+                    {row.stockNotice && <div className="field-warning">{row.stockNotice}</div>}
+                  </td>
+                  <td>
+                    <input
+                      aria-label={`Unit for detail row ${index + 1}`}
+                      required
                       value={row.unit}
                       onChange={(e) => updateRow(index, 'unit', e.target.value)}
                       disabled={submitting}
@@ -315,19 +424,20 @@ export default function StockTransactionForm() {
                   </td>
                   <td>
                     <input
+                      aria-label={`Remarks for detail row ${index + 1}`}
                       value={row.remarks}
                       onChange={(e) => updateRow(index, 'remarks', e.target.value)}
                       disabled={submitting}
                     />
                   </td>
                   {form.transactionType === 'Issue' && (
-                    <td>{row.available !== null ? row.available : '-'}</td>
+                    <td>{row.available !== null ? row.available : 'Loading...'}</td>
                   )}
                   <td>
                     <button
                       type="button"
                       onClick={() => removeRow(index)}
-                      disabled={submitting || details.length === 1}
+                      disabled={submitting}
                     >
                       Remove
                     </button>

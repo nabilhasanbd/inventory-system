@@ -1,32 +1,16 @@
-Now implement the Stock Transaction form in React.
+Now improve the Issue transaction UI.
 
-The form must support:
+For every Issue detail row:
 
-Header:
-- Transaction No.
-- Transaction Date
-- Transaction Type: Receive / Issue
-- Store
-- Remarks
+1. Display current available stock.
+2. Validate requested quantity against available stock.
+3. Prevent the user from entering a quantity greater than available stock.
+4. Show a clear validation message.
+5. Validate all rows before submitting.
 
-Detail grid:
-- Item dropdown
-- Date field
-- Quantity numeric field
-- Unit
-- Remarks text field
-- Checkbox where appropriate
-- Add row
-- Remove row
+Important:
+This is only client-side validation.
 
-The user must be able to add multiple detail rows before saving.
+The backend server-side validation must remain the final authority.
 
-When an item is selected:
-- automatically populate its unit
-- for Issue transactions, fetch/display available stock
-
-Do not implement edit/update yet.
-
-Implement clean client-side validation.
-
-Do not rely only on client-side validation.
+Do not modify backend business rules unless there is a bug.
