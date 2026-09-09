@@ -15,6 +15,7 @@ export default function App() {
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/stores" element={<StoresPage />} />
         <Route path="/stock-transactions" element={<StockTransactionsPage />} />
+        <Route path="/stock-transactions/:id/edit" element={<StockTransactionsPage />} />
         <Route path="/stock-reports" element={<StockReportsPage />} />
         <Route path="/transaction-reports" element={<TransactionReportsPage />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Item } from '../types/item'
 import type { Store } from '../types/store'
-import type { TransactionType, StockTransactionPayload } from '../types/transaction'
+import type { StockTransaction, TransactionType, StockTransactionPayload, UpdateStockTransactionPayload } from '../types/transaction'
 import { getItems } from '../api/items'
 import { getStores } from '../api/stores'
-import { createReceiveTransaction, createIssueTransaction } from '../api/transactions'
+import { createReceiveTransaction, createIssueTransaction, getStockTransaction, updateStockTransaction } from '../api/transactions'
 import { getAvailableStock } from '../api/stockBalance'
 import { extractError } from '../api/errors'
 
 interface DetailRow {
+  id?: number
   itemId: string
   quantity: string
   unit: string
@@ -51,11 +52,18 @@ function initialForm(): FormState {
   }
 }
 
-export default function StockTransactionForm() {
+interface StockTransactionFormProps {
+  transactionId?: number
+}
+
+export default function StockTransactionForm({ transactionId }: StockTransactionFormProps) {
+  const isEditing = transactionId !== undefined
   const [items, setItems] = useState<Item[]>([])
   const [stores, setStores] = useState<Store[]>([])
   const [metaLoading, setMetaLoading] = useState(true)
   const [metaError, setMetaError] = useState<string | null>(null)
+  const [transactionLoading, setTransactionLoading] = useState(isEditing)
+  const [transactionError, setTransactionError] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(initialForm)
   const [details, setDetails] = useState<DetailRow[]>([emptyDetail()])
   const [errors, setErrors] = useState<FormErrors>({ rows: [] })
@@ -82,6 +90,51 @@ export default function StockTransactionForm() {
       active = false
     }
   }, [])
+
+  function applyTransaction(transaction: StockTransaction) {
+    setForm({
+      transactionNo: transaction.transactionNo,
+      transactionDate: transaction.transactionDate.slice(0, 10),
+      transactionType: transaction.transactionType === 'Receipt' ? 'Receive' : 'Issue',
+      storeId: String(transaction.storeId),
+      remarks: transaction.remarks ?? '',
+    })
+    setDetails(
+      transaction.details.map((detail) => ({
+        id: detail.id,
+        itemId: String(detail.itemId),
+        quantity: String(detail.quantity),
+        unit: detail.unit,
+        remarks: detail.remarks ?? '',
+        available: null,
+        stockNotice: null,
+      })),
+    )
+    if (transaction.transactionType === 'Issue') {
+      transaction.details.forEach((detail, index) => {
+        fetchAvailable(index, transaction.storeId, detail.itemId)
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!isEditing || transactionId === undefined) return
+    let active = true
+    setTransactionLoading(true)
+    getStockTransaction(transactionId)
+      .then((transaction) => {
+        if (active) applyTransaction(transaction)
+      })
+      .catch((err) => {
+        if (active) setTransactionError(extractError(err))
+      })
+      .finally(() => {
+        if (active) setTransactionLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [isEditing, transactionId])
 
   const detailsRef = useRef(details)
   const stockRequestIds = useRef<number[]>([])
@@ -151,7 +204,7 @@ export default function StockTransactionForm() {
   }
 
   function onQuantityChange(index: number, value: string) {
-    if (form.transactionType !== 'Issue' || value.trim() === '') {
+    if (isEditing || form.transactionType !== 'Issue' || value.trim() === '') {
       updateRow(index, 'quantity', value)
       return
     }
@@ -213,7 +266,7 @@ export default function StockTransactionForm() {
       const qty = Number(row.quantity)
       if (row.quantity.trim() === '' || isNaN(qty)) re.push('Quantity is required')
       else if (qty <= 0) re.push('Quantity must be > 0')
-      if (form.transactionType === 'Issue' && row.itemId && form.storeId) {
+      if (!isEditing && form.transactionType === 'Issue' && row.itemId && form.storeId) {
         if (row.available === null) {
           re.push('Available stock is still loading. Please wait and try again')
         } else if (requestedByItem[row.itemId] > row.available) {
@@ -246,15 +299,34 @@ export default function StockTransactionForm() {
           remarks: d.remarks.trim() || null,
         })),
       }
-      if (form.transactionType === 'Receive') {
+      if (isEditing && transactionId !== undefined) {
+        const updatePayload: UpdateStockTransactionPayload = {
+          transactionDate: form.transactionDate || null,
+          remarks: form.remarks.trim() || null,
+          details: details.map((d) => ({
+            id: d.id ?? 0,
+            itemId: Number(d.itemId),
+            quantity: Number(d.quantity),
+            unit: d.unit,
+            remarks: d.remarks.trim() || null,
+          })),
+        }
+        const updated = await updateStockTransaction(transactionId, updatePayload)
+        applyTransaction(updated)
+        setSuccess(`Transaction '${updated.transactionNo}' updated.`)
+      } else if (form.transactionType === 'Receive') {
         await createReceiveTransaction(payload)
+        setSuccess(`${form.transactionType} transaction '${form.transactionNo}' created.`)
+        setForm(initialForm())
+        setDetails([emptyDetail()])
+        setErrors({ rows: [] })
       } else {
         await createIssueTransaction(payload)
+        setSuccess(`${form.transactionType} transaction '${form.transactionNo}' created.`)
+        setForm(initialForm())
+        setDetails([emptyDetail()])
+        setErrors({ rows: [] })
       }
-      setSuccess(`${form.transactionType} transaction '${form.transactionNo}' created.`)
-      setForm(initialForm())
-      setDetails([emptyDetail()])
-      setErrors({ rows: [] })
     } catch (err) {
       setSubmitError(extractError(err))
     } finally {
@@ -270,10 +342,18 @@ export default function StockTransactionForm() {
     return <div className="alert alert-error">Unable to load items and stores: {metaError}</div>
   }
 
+  if (transactionLoading) {
+    return <p>Loading transaction...</p>
+  }
+
+  if (transactionError) {
+    return <div className="alert alert-error">Unable to load transaction: {transactionError}</div>
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-section">
-        <h3>Header</h3>
+        <h3>{isEditing ? 'Edit Transaction' : 'Header'}</h3>
         <div className="form-grid">
           <div className="form-field">
             <label htmlFor="transaction-no">Transaction No.</label>
@@ -282,7 +362,7 @@ export default function StockTransactionForm() {
               required
               value={form.transactionNo}
               onChange={(e) => updateForm('transactionNo', e.target.value)}
-              disabled={submitting}
+              disabled={submitting || isEditing}
             />
             {errors.transactionNo && <div className="field-error">{errors.transactionNo}</div>}
           </div>
@@ -304,7 +384,7 @@ export default function StockTransactionForm() {
               id="transaction-type"
               value={form.transactionType}
               onChange={(e) => updateForm('transactionType', e.target.value as TransactionType)}
-              disabled={submitting}
+              disabled={submitting || isEditing}
             >
               <option value="Receive">Receive</option>
               <option value="Issue">Issue</option>
@@ -317,7 +397,7 @@ export default function StockTransactionForm() {
               required
               value={form.storeId}
               onChange={(e) => updateForm('storeId', e.target.value)}
-              disabled={submitting}
+              disabled={submitting || isEditing}
             >
               <option value="">Select store</option>
               {stores.map((s) => (
@@ -364,12 +444,13 @@ export default function StockTransactionForm() {
             {details.map((row, index) => {
               const qty = Number(row.quantity)
               const exceeds =
+                !isEditing &&
                 form.transactionType === 'Issue' &&
                 row.available !== null &&
                 row.quantity.trim() !== '' &&
                 !isNaN(qty) &&
                 qty > (availableForRow(index) ?? row.available)
-              const rowLimit = form.transactionType === 'Issue' ? availableForRow(index) : null
+              const rowLimit = !isEditing && form.transactionType === 'Issue' ? availableForRow(index) : null
               return (
                 <tr key={index}>
                   <td>
@@ -378,7 +459,7 @@ export default function StockTransactionForm() {
                       required
                       value={row.itemId}
                       onChange={(e) => onItemChange(index, e.target.value)}
-                      disabled={submitting}
+                      disabled={submitting || (isEditing && row.id !== undefined)}
                     >
                       <option value="">Select item</option>
                       {items.map((i) => (
@@ -454,7 +535,7 @@ export default function StockTransactionForm() {
 
       <div className="form-actions">
         <button type="submit" className="primary" disabled={submitting}>
-          {submitting ? 'Saving...' : 'Save Transaction'}
+          {submitting ? 'Saving...' : isEditing ? 'Update Transaction' : 'Save Transaction'}
         </button>
       </div>
     </form>
