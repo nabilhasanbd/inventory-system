@@ -12,6 +12,21 @@ namespace backend_api.Tests;
 
 public class StockReportServiceTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("2026-09-01")]
+    public async Task GetStockMovementAsync_IncludesOpeningEntriesInPeriod(string? from)
+    {
+        await using var db = await CreateReportDbAsync();
+        var report = (await new StockReportService(db).GetStockMovementAsync(new StockMovementReportFilterDto
+        {
+            StoreId = 1, ItemId = 1,
+            FromDate = from is null ? null : DateTime.Parse(from)
+        }, CancellationToken.None)).Single();
+        Assert.Equal(50m, report.Opening);
+        Assert.Equal(95m, report.Closing);
+    }
+
     [Fact]
     public async Task GetStockMovementAsync_CalculatesMovementFromTransactionHistory()
     {

@@ -34,7 +34,7 @@ function toParams(filters: FilterState) {
 }
 
 function formatNumber(value: number): string {
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })
 }
 
 function formatDate(value: string): string {
@@ -118,9 +118,8 @@ export default function TransactionReportsPage() {
     (summary, row) => ({
       receive: summary.receive + row.receiveQuantity,
       issue: summary.issue + row.issueQuantity,
-      closing: summary.closing + row.closingQuantity,
     }),
-    { receive: 0, issue: 0, closing: 0 },
+    { receive: 0, issue: 0 },
   )
 
   return (
@@ -191,14 +190,7 @@ export default function TransactionReportsPage() {
           <span className="report-card-label">Issue</span>
           <strong>{formatNumber(totals.issue)}</strong>
         </div>
-        <div className="report-card">
-          <span className="report-card-label">Last Closing</span>
-          <strong>{rows.length === 0 ? formatNumber(0) : formatNumber(rows[rows.length - 1].closingQuantity)}</strong>
-        </div>
-        <div className="report-card">
-          <span className="report-card-label">Closing Total</span>
-          <strong>{formatNumber(totals.closing)}</strong>
-        </div>
+
       </div>
 
       {loading ? <p>Generating report...</p> : (
@@ -223,7 +215,7 @@ export default function TransactionReportsPage() {
                   <td colSpan={9} className="report-empty">Run the report to see transaction details.</td>
                 </tr>
               ) : rows.map((row) => (
-                <tr key={`${row.transactionNo}-${row.itemId}-${row.storeId}`}>
+                <tr key={row.detailId}>
                   <td>{formatDate(row.transactionDate)}</td>
                   <td>{row.transactionNo}</td>
                   <td>{row.transactionType === 'Receipt' ? 'Receive' : row.transactionType === 'OpeningBalance' ? 'Opening Balance' : row.transactionType}</td>

@@ -16,6 +16,7 @@ export interface StockMovementReportRow {
 }
 
 export interface TransactionDetailReportRow {
+  detailId: number
   transactionDate: string
   transactionNo: string
   transactionType: string

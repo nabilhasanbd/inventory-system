@@ -35,31 +35,13 @@ public class StockBalanceService : IStockBalanceService
         if (!await _db.Items.AnyAsync(i => i.Id == itemId, ct))
             throw new NotFoundException($"Item with id {itemId} was not found.");
 
-        var current = await LockQuantityAsync(storeId, itemId, ct);
-        if (current.HasValue)
-        {
-            var newQty = current.Value + quantity;
-            await SetQuantityAsync(storeId, itemId, newQty, ct);
-            return newQty;
-        }
-
-        // No row exists yet - nothing to lock. Insert; the unique constraint guards the
-        // rare concurrent-create race (a second request gets 23505 and recovers below).
-        try
-        {
-            await ExecAsync(
-                @"INSERT INTO ""StockBalances"" (""StoreId"", ""ItemId"", ""Quantity"") VALUES (@s, @i, @q)",
-                new (string, object)[] { ("@s", storeId), ("@i", itemId), ("@q", quantity) }, ct);
-            return quantity;
-        }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
-        {
-            // Another request inserted first; lock it and add to it.
-            var existing = await LockQuantityAsync(storeId, itemId, ct) ?? 0m;
-            var newQty = existing + quantity;
-            await SetQuantityAsync(storeId, itemId, newQty, ct);
-            return newQty;
-        }
+        await using var cmd = CreateCommand(
+            @"INSERT INTO ""StockBalances"" (""StoreId"", ""ItemId"", ""Quantity"") VALUES (@s, @i, @q)
+              ON CONFLICT (""StoreId"", ""ItemId"") DO UPDATE
+              SET ""Quantity"" = ""StockBalances"".""Quantity"" + EXCLUDED.""Quantity""
+              RETURNING ""Quantity""",
+            new (string, object)[] { ("@s", storeId), ("@i", itemId), ("@q", quantity) });
+        return Convert.ToDecimal(await cmd.ExecuteScalarAsync(ct));
     }
 
     public async Task<decimal> DecreaseStockAsync(int storeId, int itemId, decimal quantity, CancellationToken ct)

@@ -2,6 +2,7 @@ namespace backend_api.DTOs;
 
 public class TransactionDetailReportRowDto
 {
+    public int DetailId { get; set; }
     public DateTime TransactionDate { get; set; }
     public string TransactionNo { get; set; } = string.Empty;
     public string TransactionType { get; set; } = string.Empty;

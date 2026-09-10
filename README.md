@@ -48,7 +48,7 @@ Two setup paths are available:
 
 For a ready-to-use setup with schema and sample data, use:
 
-- [database/postgresql-setup.sql](database/postgresql-setup.sql)
+- [database/postgresql-script.sql](database/postgresql-script.sql)
 
 The script creates the current EF Core schema and seeds:
 
@@ -129,7 +129,8 @@ The main required configuration is:
 
 Main endpoints:
 
-- `GET/POST/PUT/PATCH /api/items`
+- `GET/POST/PUT/PATCH/DELETE /api/items`
+- Items with transaction history or nonzero stock must be deactivated rather than deleted.
 - `GET/POST/PUT/PATCH /api/stores`
 - `GET /api/stockbalances?storeId={id}&itemId={id}`
 - `GET /api/stocktransactions`
@@ -188,6 +189,7 @@ Two reports are implemented:
 Current report rules:
 
 - calculations come from transaction history
+- opening-balance entries inside the selected period are included in the Opening column
 - `Return` is currently reported as zero
 - export and print are supported through backend RDLC rendering
 
@@ -203,3 +205,21 @@ Current report rules:
 - No dedicated UI flow exists for `Transfer`, `Adjustment`, or `Return` transactions.
 - `Return` is not implemented as a transaction type in business processing, so report return quantity remains zero.
 - Development auto-seeding does not populate sample transaction history; use the SQL script if you want a fuller sample dataset.
+
+## Verification
+
+Run `dotnet test` from the repository root and `npm run build` from `frontend/`.
+Stop an existing API process before rebuilding its executable, or use
+`dotnet test -p:UseAppHost=false -p:OutputPath=bin/verification/`.
+
+The frontend development proxy expects the API on port 5231; start it with
+`dotnet run --project backend-api --launch-profile http`.
+A separately running older API on another port does not use the current source automatically.
+For separate-origin deployments, configure the reverse proxy/CORS and set
+`VITE_API_BASE_URL` to the full API prefix (for example `https://example.com/api`).
+
+The SQL script is for an empty database and records the matching EF migration.
+Do not run its sample inserts against an existing populated database.
+Transaction edits and deletions serialize by transaction ID; stock rows are updated
+atomically and multi-item changes use a consistent item order. Header remarks can
+be cleared by submitting null. Detail dates mirror the transaction header date.

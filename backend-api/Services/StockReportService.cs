@@ -33,9 +33,11 @@ public class StockReportService : IStockReportService
             })
             .Select(group =>
             {
-                var opening = range.FromDate.HasValue
-                    ? group.Where(m => m.TransactionDate < range.FromDate.Value).Sum(m => ToSignedQuantity(m.TransactionType, m.Quantity))
-                    : 0m;
+                var opening = group
+                    .Where(m => (range.FromDate.HasValue && m.TransactionDate < range.FromDate.Value)
+                        || (IsInPeriod(m.TransactionDate, range.FromDate, range.ToDate)
+                            && m.TransactionType == TransactionType.OpeningBalance))
+                    .Sum(m => ToSignedQuantity(m.TransactionType, m.Quantity));
 
                 var receive = group
                     .Where(m => IsInPeriod(m.TransactionDate, range.FromDate, range.ToDate) && m.TransactionType == TransactionType.Receipt)
@@ -113,6 +115,7 @@ public class StockReportService : IStockReportService
 
                     rows.Add(new TransactionDetailReportRowDto
                     {
+                        DetailId = line.DetailId,
                         TransactionDate = line.TransactionDate,
                         TransactionNo = line.TransactionNo,
                         TransactionType = line.TransactionType.ToString(),

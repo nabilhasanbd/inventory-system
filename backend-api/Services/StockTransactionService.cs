@@ -66,7 +66,7 @@ public class StockTransactionService : IStockTransactionService
         _db.StockTransactions.Add(transaction);
         await _db.SaveChangesAsync(ct);
 
-        foreach (var d in dto.Details)
+        foreach (var d in dto.Details.OrderBy(d => d.ItemId))
             await _balanceService.IncreaseStockAsync(store.Id, d.ItemId, d.Quantity, ct);
 
         await tx.CommitAsync(ct);
@@ -93,7 +93,7 @@ public class StockTransactionService : IStockTransactionService
         _db.StockTransactions.Add(transaction);
         await _db.SaveChangesAsync(ct);
 
-        foreach (var d in dto.Details)
+        foreach (var d in dto.Details.OrderBy(d => d.ItemId))
             await _balanceService.DecreaseStockAsync(store.Id, d.ItemId, d.Quantity, ct);
 
         await tx.CommitAsync(ct);
@@ -102,6 +102,9 @@ public class StockTransactionService : IStockTransactionService
 
     public async Task<StockTransactionResponseDto> UpdateAsync(int id, UpdateStockTransactionDto dto, CancellationToken ct)
     {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (_db.Database.IsNpgsql())
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({id})", ct);
         var transaction = await _db.StockTransactions
             .Include(t => t.Details)
             .FirstOrDefaultAsync(t => t.Id == id, ct)
@@ -143,7 +146,6 @@ public class StockTransactionService : IStockTransactionService
                 throw new ConflictException($"Item with id {itemId} is not active.");
         }
 
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         var matched = new HashSet<int>();
         foreach (var d in dto.Details)
@@ -173,8 +175,7 @@ public class StockTransactionService : IStockTransactionService
 
         if (dto.TransactionDate.HasValue)
             transaction.TransactionDate = DateTime.SpecifyKind(dto.TransactionDate.Value, DateTimeKind.Utc);
-        if (dto.Remarks is not null)
-            transaction.Remarks = dto.Remarks;
+        transaction.Remarks = dto.Remarks;
         transaction.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
@@ -201,6 +202,9 @@ public class StockTransactionService : IStockTransactionService
 
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        if (_db.Database.IsNpgsql())
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({id})", ct);
         var transaction = await _db.StockTransactions
             .Include(t => t.Details)
             .FirstOrDefaultAsync(t => t.Id == id, ct)
@@ -214,7 +218,6 @@ public class StockTransactionService : IStockTransactionService
             .GroupBy(d => d.ItemId)
             .ToDictionary(g => g.Key, g => -direction * g.Sum(d => d.Quantity));
 
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
         await ApplyStockDeltasAsync(storeId, deltas, ct);
         _db.StockTransactions.Remove(transaction);
         await _db.SaveChangesAsync(ct);
@@ -231,7 +234,7 @@ public class StockTransactionService : IStockTransactionService
 
     private async Task ApplyStockDeltasAsync(int storeId, Dictionary<int, decimal> deltas, CancellationToken ct)
     {
-        foreach (var (itemId, delta) in deltas)
+        foreach (var (itemId, delta) in deltas.OrderBy(d => d.Key))
         {
             if (delta < 0)
             {
@@ -241,7 +244,7 @@ public class StockTransactionService : IStockTransactionService
             }
         }
 
-        foreach (var (itemId, delta) in deltas)
+        foreach (var (itemId, delta) in deltas.OrderBy(d => d.Key))
         {
             if (delta > 0)
                 await _balanceService.IncreaseStockAsync(storeId, itemId, delta, ct);

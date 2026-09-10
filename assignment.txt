@@ -1,0 +1,127 @@
+Task 1 — Inventory Stock Management 
+
+## Objective
+
+Develop a small **Inventory Stock Management system** to demonstrate your ability to handle business rules, stock calculations, transactional processing, database design, and reporting. The system maintains inventory for multiple items. Items can be received into stock, issued from stock etc.
+
+
+## 1. Item Master
+
+Create an Item Master containing at least:
+
+* Item Code
+* Item Name
+* Category
+* Unit
+* Reorder Level
+* Active/Inactive Status
+
+Provide basic CRUD functionality.
+
+
+
+## 2. Stock Transaction
+
+Create a transaction form with the following transaction types:
+
+* Receive
+* Issue
+
+
+The transaction should contain:
+
+### Header
+
+* Transaction No.
+* Transaction Date
+* Transaction Type
+* Remarks
+
+### Details
+
+* Item
+* Quantity
+* Unit
+* Remarks
+
+Multiple items should be added to a single transaction.
+
+---
+
+Business Rules:
+
+### Receive
+
+Stock should increase:
+
+**Current Stock = Current Stock + Received Quantity**
+
+### Issue
+
+Stock should decrease:
+
+**Current Stock = Current Stock − Issued Quantity**
+
+The system must **not allow issuing more quantity than the available stock**.
+
+
+The tiny application must:
+
+1. Prevent negative stock allowing user to see available balance using client-side validation along with server side validation.
+
+2. User will be able to enter/update multiple item at a time, and this detail section should be implemented using a grid where the user can add multiple detail rows before saving the transaction.
+
+Each detail row should demonstrate different types of controls, such as:
+
+Combo Box / Dropdown
+Date field
+Text Box
+Numeric field
+Checkbox, where appropriate
+
+The expected behavior is: User enters/updates multiple detail rows → clicks Save/Update → all changes are processed together as one transaction.
+
+During update, the system must be able to identify which detail records are new, which are modified, and which have been deleted, and persist all changes correctly in one transaction.
+
+
+
+Task 2 — RDLC Report: ==============================================================
+
+1. Create at least one RDLC report that records every stock movement.
+
+
+The report should show:
+
+| Item | Store | Opening | Receive | Issue | Return | Closing |
+| ---- | ----- | ------: | ------: | ----: | -----: | ------: |
+
+
+
+The report should be exportable/printable.
+The closing quantity should be calculated correctly based on the transaction history.
+
+2. Create a report detailing Transaction details containing elow information
+
+* Transaction Date
+* Transaction No.
+* Transaction Type
+* Store
+* Item
+* Opening Quantity
+* Receive Quantity
+* Issue Quantity
+* Closing Quantity
+
+Deliverables:===================================
+
+1. Complete source code.
+2. Database script.
+3. Sample/master data
+4. RDLC report files.
+5. A short README containing:
+Technologies/frameworks used
+Database setup instructions
+Application setup/run instructions
+Brief explanation of the implementation approach
+Any assumptions or limitations
+

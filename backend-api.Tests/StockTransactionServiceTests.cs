@@ -65,6 +65,48 @@ public class StockTransactionServiceTests
         Assert.Contains("not supported", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task UpdateAsync_AddsChangesRemovesDetailsAndClearsRemarks()
+    {
+        await using var db = CreateDb();
+        SeedTransactionData(db, TransactionType.Receipt, 10m);
+        db.StockTransactions.Single().Remarks = "Old remarks";
+        db.Items.Add(new Item { Id = 2, ItemCode = "ITM-002", ItemName = "Paper", Unit = "PCS" });
+        db.StockTransactionDetails.Add(new StockTransactionDetail
+        {
+            Id = 2, StockTransactionId = 1, ItemId = 2, Quantity = 4m, Unit = "PCS"
+        });
+        await db.SaveChangesAsync();
+        var balance = new FakeStockBalanceService();
+        var updated = await new StockTransactionService(db, balance).UpdateAsync(1, new UpdateStockTransactionDto
+        {
+            Remarks = null,
+            Details = [
+                new() { Id = 1, ItemId = 1, Quantity = 12m, Unit = "PCS" },
+                new() { ItemId = 1, Quantity = 3m, Unit = "PCS" }
+            ]
+        }, CancellationToken.None);
+        Assert.Null(updated.Remarks);
+        Assert.Equal(2, updated.Details.Count);
+        Assert.DoesNotContain(updated.Details, d => d.Id == 2);
+        Assert.Contains(balance.Increases, x => x.itemId == 1 && x.quantity == 5m);
+        Assert.Contains(balance.Decreases, x => x.itemId == 2 && x.quantity == 4m);
+    }
+
+    [Fact]
+    public async Task DeleteItem_ProtectsHistoryButAllowsUnusedItems()
+    {
+        await using var db = CreateDb();
+        SeedTransactionData(db, TransactionType.Receipt, 10m);
+        db.Items.Add(new Item { Id = 2, ItemCode = "UNUSED", ItemName = "Unused", Unit = "PCS" });
+        await db.SaveChangesAsync();
+        var service = new ItemService(db);
+        await Assert.ThrowsAsync<ConflictException>(() => service.DeleteAsync(1, CancellationToken.None));
+        await service.DeleteAsync(2, CancellationToken.None);
+        Assert.True(await db.Items.AnyAsync(i => i.Id == 1));
+        Assert.False(await db.Items.AnyAsync(i => i.Id == 2));
+    }
+
     private static ApplicationDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

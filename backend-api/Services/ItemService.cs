@@ -90,6 +90,17 @@ public class ItemService : IItemService
         return Map(item);
     }
 
+    public async Task DeleteAsync(int id, CancellationToken ct)
+    {
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id, ct)
+            ?? throw new NotFoundException($"Item with id {id} was not found.");
+        if (await _db.StockTransactionDetails.AnyAsync(d => d.ItemId == id, ct)
+            || await _db.StockBalances.AnyAsync(b => b.ItemId == id && b.Quantity != 0, ct))
+            throw new ConflictException("Items with transaction history or stock cannot be deleted. Deactivate the item instead.");
+        _db.Items.Remove(item);
+        await _db.SaveChangesAsync(ct);
+    }
+
     private static ItemResponseDto Map(Item i) => new()
     {
         Id = i.Id,

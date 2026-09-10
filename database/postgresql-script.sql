@@ -123,4 +123,13 @@ SELECT setval(pg_get_serial_sequence('"StockTransactions"', 'Id'), COALESCE((SEL
 SELECT setval(pg_get_serial_sequence('"StockTransactionDetails"', 'Id'), COALESCE((SELECT MAX("Id") FROM "StockTransactionDetails"), 1), true);
 SELECT setval(pg_get_serial_sequence('"StockBalances"', 'Id'), COALESCE((SELECT MAX("Id") FROM "StockBalances"), 1), true);
 
+-- Mark the matching migration applied so development startup does not recreate these tables.
+CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+    "MigrationId" character varying(150) NOT NULL PRIMARY KEY,
+    "ProductVersion" character varying(32) NOT NULL
+);
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260907121939_InitialCreate', '8.0.11')
+ON CONFLICT ("MigrationId") DO NOTHING;
+
 COMMIT;

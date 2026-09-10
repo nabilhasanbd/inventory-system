@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj-test/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -16,6 +16,10 @@ export async function updateItem(id: number, payload: UpdateItemPayload): Promis
   return data
 }
 
+export async function deleteItem(id: number): Promise<void> {
+  await apiClient.delete(`/items/${id}`)
+}
+
 export async function setItemStatus(id: number, isActive: boolean): Promise<Item> {
   const action = isActive ? 'activate' : 'deactivate'
   const { data } = await apiClient.patch<Item>(`/items/${id}/${action}`)

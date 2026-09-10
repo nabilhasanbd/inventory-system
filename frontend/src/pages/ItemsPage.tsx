@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Item, CreateItemPayload, UpdateItemPayload } from '../types/item'
-import { getItems, createItem, updateItem, setItemStatus } from '../api/items'
+import { getItems, createItem, updateItem, setItemStatus, deleteItem } from '../api/items'
 import { extractError } from '../api/errors'
 import Modal from '../components/Modal'
 import ItemForm from '../components/ItemForm'
@@ -59,6 +59,19 @@ export default function ItemsPage() {
     await load()
   }
 
+  async function handleDelete(item: Item) {
+    if (!window.confirm(`Delete item '${item.itemCode}'?`)) return
+    setError(null)
+    setMessage(null)
+    try {
+      await deleteItem(item.id)
+      setMessage(`Item '${item.itemCode}' deleted.`)
+      await load()
+    } catch (err) {
+      setError(extractError(err))
+    }
+  }
+
   async function handleToggle(item: Item) {
     setMessage(null)
     setError(null)
@@ -111,6 +124,7 @@ export default function ItemsPage() {
                 <td>{item.isActive ? 'Active' : 'Inactive'}</td>
                 <td className="actions">
                   <button onClick={() => openEdit(item)}>Edit</button>
+                  <button onClick={() => handleDelete(item)}>Delete</button>
                   <button onClick={() => handleToggle(item)}>
                     {item.isActive ? 'Deactivate' : 'Activate'}
                   </button>

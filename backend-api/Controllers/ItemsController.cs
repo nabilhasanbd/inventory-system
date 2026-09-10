@@ -34,6 +34,13 @@ public class ItemsController : ControllerBase
     public async Task<ActionResult<ItemResponseDto>> Update(int id, [FromBody] UpdateItemDto dto, CancellationToken ct)
         => Ok(await _service.UpdateAsync(id, dto, ct));
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _service.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
     [HttpPatch("{id:int}/activate")]
     public async Task<ActionResult<ItemResponseDto>> Activate(int id, CancellationToken ct)
         => Ok(await _service.SetActiveStatusAsync(id, true, ct));
