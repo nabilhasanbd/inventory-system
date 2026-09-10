@@ -2,8 +2,11 @@ using backend_api.Data;
 using backend_api.Middleware;
 using backend_api.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 // Add services to the container.
 
@@ -20,6 +23,7 @@ builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IStockBalanceService, StockBalanceService>();
 builder.Services.AddScoped<IStockTransactionService, StockTransactionService>();
 builder.Services.AddScoped<IStockReportService, StockReportService>();
+builder.Services.AddScoped<IStockReportDocumentService, StockReportDocumentService>();
 
 var app = builder.Build();
 

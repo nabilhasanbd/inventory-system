@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <DataSources>
+    <DataSource Name="LocalDataSource">
+      <ConnectionProperties>
+        <DataProvider>System.Data.DataSet</DataProvider>
+        <ConnectString>/* Local Connection */</ConnectString>
+      </ConnectionProperties>
+      <rd:DataSourceID>40c7242f-2b98-4b3d-b6f7-7bc4ad706000</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <ReportParameters>
+    <ReportParameter Name="ReportTitle">
+      <DataType>String</DataType>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ReportTitle</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="DateRange">
+      <DataType>String</DataType>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>DateRange</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="StoreFilter">
+      <DataType>String</DataType>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>StoreFilter</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="ItemFilter">
+      <DataType>String</DataType>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ItemFilter</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <Body>
+    <ReportItems>
+      <Textbox Name="ReportTitleTextbox">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=Parameters!ReportTitle.Value</Value>
+                <Style>
+                  <FontFamily>Arial</FontFamily>
+                  <FontSize>16pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <Top>0in</Top>
+        <Left>0in</Left>
+        <Height>0.3in</Height>
+        <Width>10.2in</Width>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="DateRangeTextbox">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=&quot;Date Range: &quot; &amp; Parameters!DateRange.Value</Value>
+                <Style>
+                  <FontFamily>Arial</FontFamily>
+                  <FontSize>9pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <Top>0.34in</Top>
+        <Left>0in</Left>
+        <Height>0.22in</Height>
+        <Width>5in</Width>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="StoreFilterTextbox">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=&quot;Store: &quot; &amp; Parameters!StoreFilter.Value</Value>
+                <Style>
+                  <FontFamily>Arial</FontFamily>
+                  <FontSize>9pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <Top>0.58in</Top>
+        <Left>0in</Left>
+        <Height>0.22in</Height>
+        <Width>5in</Width>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="ItemFilterTextbox">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=&quot;Item: &quot; &amp; Parameters!ItemFilter.Value</Value>
+                <Style>
+                  <FontFamily>Arial</FontFamily>
+                  <FontSize>9pt</FontSize>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <Top>0.82in</Top>
+        <Left>0in</Left>
+        <Height>0.22in</Height>
+        <Width>5in</Width>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Tablix Name="StockMovementTablix">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn><Width>2.1in</Width></TablixColumn>
+            <TablixColumn><Width>2.05in</Width></TablixColumn>
+            <TablixColumn><Width>0.9in</Width></TablixColumn>
+            <TablixColumn><Width>0.9in</Width></TablixColumn>
+            <TablixColumn><Width>0.9in</Width></TablixColumn>
+            <TablixColumn><Width>0.9in</Width></TablixColumn>
+            <TablixColumn><Width>0.95in</Width></TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.28in</Height>
+              <TablixCells>
+                <TablixCell><CellContents><Textbox Name="HeaderItem"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Item</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderStore"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Store</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderOpening"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Opening</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderReceive"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Receive</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderIssue"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Issue</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderReturn"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Return</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="HeaderClosing"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>Closing</Value><Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#C7C7C7</Color><Style>Solid</Style></Border><BackgroundColor>#EDEDED</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.26in</Height>
+              <TablixCells>
+                <TablixCell><CellContents><Textbox Name="DetailItem"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Item.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailStore"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Store.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailOpening"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Opening.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize><Format>N2</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailReceive"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Receive.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize><Format>N2</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailIssue"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Issue.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize><Format>N2</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailReturn"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Return.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize><Format>N2</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+                <TablixCell><CellContents><Textbox Name="DetailClosing"><CanGrow>true</CanGrow><KeepTogether>true</KeepTogether><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Closing.Value</Value><Style><FontFamily>Arial</FontFamily><FontSize>8.5pt</FontSize><Format>N2</Format><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Color>#D9D9D9</Color><Style>Solid</Style></Border><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style></Textbox></CellContents></TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember /><TablixMember /><TablixMember /><TablixMember /><TablixMember /><TablixMember /><TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <KeepWithGroup>After</KeepWithGroup>
+              <RepeatOnNewPage>true</RepeatOnNewPage>
+            </TablixMember>
+            <TablixMember>
+              <Group Name="DetailGroup" />
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>StockMovementDataSet</DataSetName>
+        <Top>1.16in</Top>
+        <Left>0in</Left>
+        <Height>0.54in</Height>
+        <Width>8.7in</Width>
+        <Style />
+      </Tablix>
+    </ReportItems>
+    <Height>1.8in</Height>
+    <Style />
+  </Body>
+  <Width>10.2in</Width>
+  <Page>
+    <PageHeight>8.27in</PageHeight>
+    <PageWidth>11.69in</PageWidth>
+    <LeftMargin>0.35in</LeftMargin>
+    <RightMargin>0.35in</RightMargin>
+    <TopMargin>0.35in</TopMargin>
+    <BottomMargin>0.5in</BottomMargin>
+    <PageFooter>
+      <Height>0.3in</Height>
+      <PrintOnFirstPage>true</PrintOnFirstPage>
+      <PrintOnLastPage>true</PrintOnLastPage>
+      <ReportItems>
+        <Textbox Name="PageNumberTextbox">
+          <CanGrow>true</CanGrow>
+          <KeepTogether>true</KeepTogether>
+          <Paragraphs>
+            <Paragraph>
+              <TextRuns>
+                <TextRun>
+                  <Value>=&quot;Page &quot; &amp; Globals!PageNumber &amp; &quot; of &quot; &amp; Globals!TotalPages</Value>
+                  <Style>
+                    <FontFamily>Arial</FontFamily>
+                    <FontSize>8pt</FontSize>
+                  </Style>
+                </TextRun>
+              </TextRuns>
+              <Style>
+                <TextAlign>Right</TextAlign>
+              </Style>
+            </Paragraph>
+          </Paragraphs>
+          <Top>0in</Top>
+          <Left>8.2in</Left>
+          <Height>0.2in</Height>
+          <Width>2.5in</Width>
+          <Style>
+            <PaddingLeft>2pt</PaddingLeft>
+            <PaddingRight>2pt</PaddingRight>
+            <PaddingTop>2pt</PaddingTop>
+            <PaddingBottom>2pt</PaddingBottom>
+          </Style>
+        </Textbox>
+      </ReportItems>
+      <Style />
+    </PageFooter>
+  </Page>
+  <Language>en-US</Language>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>cb09d1d7-9b28-470a-b0bf-b4f8e10ec111</rd:ReportID>
+  <DataSets>
+    <DataSet Name="StockMovementDataSet">
+      <Fields>
+        <Field Name="Item"><DataField>Item</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Store"><DataField>Store</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Opening"><DataField>Opening</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Receive"><DataField>Receive</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Issue"><DataField>Issue</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Return"><DataField>Return</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Closing"><DataField>Closing</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+      </Fields>
+      <Query>
+        <DataSourceName>LocalDataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

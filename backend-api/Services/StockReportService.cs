@@ -17,37 +17,10 @@ public class StockReportService : IStockReportService
 
     public async Task<IEnumerable<StockMovementReportRowDto>> GetStockMovementAsync(StockMovementReportFilterDto filter, CancellationToken ct)
     {
-        var fromDate = NormalizeFromDate(filter.FromDate);
-        var toDate = NormalizeToDate(filter.ToDate);
+        var range = CreateRange(filter.FromDate, filter.ToDate);
+        var history = await LoadHistoryAsync(filter.StoreId, filter.ItemId, range.ToDate, ct);
 
-        if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
-            throw new BadRequestException("'From Date' cannot be later than 'To Date'.");
-
-        var query = _db.StockTransactionDetails
-            .AsNoTracking()
-            .Where(d => !filter.StoreId.HasValue || d.StockTransaction.StoreId == filter.StoreId.Value)
-            .Where(d => !filter.ItemId.HasValue || d.ItemId == filter.ItemId.Value);
-
-        if (toDate.HasValue)
-            query = query.Where(d => d.StockTransaction.TransactionDate <= toDate.Value);
-
-        var movements = await query
-            .Select(d => new MovementLine
-            {
-                ItemId = d.ItemId,
-                ItemCode = d.Item.ItemCode,
-                ItemName = d.Item.ItemName,
-                StoreId = d.StockTransaction.StoreId,
-                StoreCode = d.StockTransaction.Store.Code,
-                StoreName = d.StockTransaction.Store.Name,
-                Unit = d.Unit,
-                Quantity = d.Quantity,
-                TransactionDate = d.StockTransaction.TransactionDate,
-                TransactionType = d.StockTransaction.TransactionType
-            })
-            .ToListAsync(ct);
-
-        return movements
+        return history
             .GroupBy(m => new
             {
                 m.ItemId,
@@ -60,16 +33,16 @@ public class StockReportService : IStockReportService
             })
             .Select(group =>
             {
-                var opening = fromDate.HasValue
-                    ? group.Where(m => m.TransactionDate < fromDate.Value).Sum(m => ToSignedQuantity(m.TransactionType, m.Quantity))
+                var opening = range.FromDate.HasValue
+                    ? group.Where(m => m.TransactionDate < range.FromDate.Value).Sum(m => ToSignedQuantity(m.TransactionType, m.Quantity))
                     : 0m;
 
                 var receive = group
-                    .Where(m => IsInPeriod(m.TransactionDate, fromDate, toDate) && m.TransactionType == TransactionType.Receipt)
+                    .Where(m => IsInPeriod(m.TransactionDate, range.FromDate, range.ToDate) && m.TransactionType == TransactionType.Receipt)
                     .Sum(m => m.Quantity);
 
                 var issue = group
-                    .Where(m => IsInPeriod(m.TransactionDate, fromDate, toDate) && m.TransactionType == TransactionType.Issue)
+                    .Where(m => IsInPeriod(m.TransactionDate, range.FromDate, range.ToDate) && m.TransactionType == TransactionType.Issue)
                     .Sum(m => m.Quantity);
 
                 const decimal returnQuantity = 0m;
@@ -98,6 +71,71 @@ public class StockReportService : IStockReportService
             .ToList();
     }
 
+    public async Task<IEnumerable<TransactionDetailReportRowDto>> GetTransactionDetailsAsync(TransactionDetailReportFilterDto filter, CancellationToken ct)
+    {
+        var range = CreateRange(filter.FromDate, filter.ToDate);
+        var history = await LoadHistoryAsync(filter.StoreId, filter.ItemId, range.ToDate, ct);
+
+        return history
+            .GroupBy(line => new
+            {
+                line.StoreId,
+                line.StoreCode,
+                line.StoreName,
+                line.ItemId,
+                line.ItemCode,
+                line.ItemName
+            })
+            .SelectMany(group =>
+            {
+                var running = 0m;
+                var rows = new List<TransactionDetailReportRowDto>();
+
+                foreach (var line in group
+                    .OrderBy(x => x.TransactionDate)
+                    .ThenBy(x => x.TransactionId)
+                    .ThenBy(x => x.DetailId))
+                {
+                    var opening = running;
+                    var receive = line.TransactionType == TransactionType.Receipt || line.TransactionType == TransactionType.OpeningBalance
+                        ? line.Quantity
+                        : 0m;
+                    var issue = line.TransactionType == TransactionType.Issue
+                        ? line.Quantity
+                        : 0m;
+
+                    running += ToSignedQuantity(line.TransactionType, line.Quantity);
+
+                    if (!IsInPeriod(line.TransactionDate, range.FromDate, range.ToDate))
+                        continue;
+                    if (filter.TransactionType.HasValue && line.TransactionType != filter.TransactionType.Value)
+                        continue;
+
+                    rows.Add(new TransactionDetailReportRowDto
+                    {
+                        TransactionDate = line.TransactionDate,
+                        TransactionNo = line.TransactionNo,
+                        TransactionType = line.TransactionType.ToString(),
+                        StoreId = group.Key.StoreId,
+                        StoreCode = group.Key.StoreCode,
+                        StoreName = group.Key.StoreName,
+                        Store = $"{group.Key.StoreCode} - {group.Key.StoreName}",
+                        ItemId = group.Key.ItemId,
+                        ItemCode = group.Key.ItemCode,
+                        ItemName = group.Key.ItemName,
+                        Item = $"{group.Key.ItemCode} - {group.Key.ItemName}",
+                        OpeningQuantity = opening,
+                        ReceiveQuantity = receive,
+                        IssueQuantity = issue,
+                        ClosingQuantity = running
+                    });
+                }
+
+                return rows;
+            })
+            .ToList();
+    }
+
     private static bool IsInPeriod(DateTime transactionDate, DateTime? fromDate, DateTime? toDate)
     {
         if (fromDate.HasValue && transactionDate < fromDate.Value)
@@ -114,6 +152,46 @@ public class StockReportService : IStockReportService
         TransactionType.Issue => -quantity,
         _ => 0m
     };
+
+    private async Task<List<HistoryLine>> LoadHistoryAsync(int? storeId, int? itemId, DateTime? toDate, CancellationToken ct)
+    {
+        var query = _db.StockTransactionDetails
+            .AsNoTracking()
+            .Where(d => !storeId.HasValue || d.StockTransaction.StoreId == storeId.Value)
+            .Where(d => !itemId.HasValue || d.ItemId == itemId.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(d => d.StockTransaction.TransactionDate <= toDate.Value);
+
+        return await query
+            .Select(d => new HistoryLine
+            {
+                TransactionId = d.StockTransactionId,
+                DetailId = d.Id,
+                TransactionNo = d.StockTransaction.TransactionNo,
+                TransactionDate = d.StockTransaction.TransactionDate,
+                TransactionType = d.StockTransaction.TransactionType,
+                StoreId = d.StockTransaction.StoreId,
+                StoreCode = d.StockTransaction.Store.Code,
+                StoreName = d.StockTransaction.Store.Name,
+                ItemId = d.ItemId,
+                ItemCode = d.Item.ItemCode,
+                ItemName = d.Item.ItemName,
+                Unit = d.Unit,
+                Quantity = d.Quantity
+            })
+            .ToListAsync(ct);
+    }
+
+    private static DateRange CreateRange(DateTime? fromDate, DateTime? toDate)
+    {
+        var range = new DateRange(NormalizeFromDate(fromDate), NormalizeToDate(toDate));
+
+        if (range.FromDate.HasValue && range.ToDate.HasValue && range.FromDate > range.ToDate)
+            throw new BadRequestException("'From Date' cannot be later than 'To Date'.");
+
+        return range;
+    }
 
     private static DateTime? NormalizeFromDate(DateTime? value)
     {
@@ -139,17 +217,22 @@ public class StockReportService : IStockReportService
         ? value
         : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 
-    private sealed class MovementLine
+    private sealed record DateRange(DateTime? FromDate, DateTime? ToDate);
+
+    private sealed class HistoryLine
     {
-        public int ItemId { get; set; }
-        public string ItemCode { get; set; } = string.Empty;
-        public string ItemName { get; set; } = string.Empty;
+        public int TransactionId { get; set; }
+        public int DetailId { get; set; }
+        public string TransactionNo { get; set; } = string.Empty;
+        public DateTime TransactionDate { get; set; }
+        public TransactionType TransactionType { get; set; }
         public int StoreId { get; set; }
         public string StoreCode { get; set; } = string.Empty;
         public string StoreName { get; set; } = string.Empty;
+        public int ItemId { get; set; }
+        public string ItemCode { get; set; } = string.Empty;
+        public string ItemName { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
-        public DateTime TransactionDate { get; set; }
-        public TransactionType TransactionType { get; set; }
     }
 }
