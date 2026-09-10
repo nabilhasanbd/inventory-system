@@ -79,6 +79,7 @@ export default function TransactionReportsPage() {
       setRows(reportRows)
       setMessage(reportRows.length === 0 ? 'No transaction details found for the selected filters.' : `Generated ${reportRows.length} report row${reportRows.length === 1 ? '' : 's'}.`)
     } catch (err) {
+      setRows([])
       setError(extractError(err))
     } finally {
       setLoading(false)

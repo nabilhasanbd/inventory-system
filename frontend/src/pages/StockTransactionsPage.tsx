@@ -22,6 +22,10 @@ function formatDate(value: string): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString()
 }
 
+function formatTransactionType(value: StockTransaction['transactionType']): string {
+  return value === 'Receipt' ? 'Receive' : value === 'Issue' ? 'Issue' : value
+}
+
 export default function StockTransactionsPage() {
   const [transactions, setTransactions] = useState<StockTransaction[]>([])
   const [stores, setStores] = useState<Store[]>([])
@@ -127,7 +131,7 @@ export default function StockTransactionsPage() {
               <tr key={transaction.id}>
                 <td>{transaction.transactionNo}</td>
                 <td>{formatDate(transaction.transactionDate)}</td>
-                <td>{transaction.transactionType === 'Receipt' ? 'Receive' : 'Issue'}</td>
+                <td>{formatTransactionType(transaction.transactionType)}</td>
                 <td>{transaction.storeCode} - {transaction.storeName}</td>
                 <td>{transaction.remarks || '-'}</td>
                 <td className="actions">
@@ -145,7 +149,7 @@ export default function StockTransactionsPage() {
         {viewing && (
           <div>
             <p><strong>Date:</strong> {formatDate(viewing.transactionDate)}</p>
-            <p><strong>Type:</strong> {viewing.transactionType === 'Receipt' ? 'Receive' : 'Issue'}</p>
+            <p><strong>Type:</strong> {formatTransactionType(viewing.transactionType)}</p>
             <p><strong>Store:</strong> {viewing.storeCode} - {viewing.storeName}</p>
             <p><strong>Remarks:</strong> {viewing.remarks || '-'}</p>
             <table className="data-table">

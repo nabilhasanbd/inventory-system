@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>backend_api</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj-test\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

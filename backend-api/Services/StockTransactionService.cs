@@ -107,7 +107,7 @@ public class StockTransactionService : IStockTransactionService
             .FirstOrDefaultAsync(t => t.Id == id, ct)
             ?? throw new NotFoundException($"Transaction with id {id} was not found.");
 
-        var direction = transaction.TransactionType == TransactionType.Receipt ? 1 : -1;
+        var direction = GetStockDirection(transaction.TransactionType);
         var storeId = transaction.StoreId;
 
         var oldQty = transaction.Details
@@ -172,9 +172,10 @@ public class StockTransactionService : IStockTransactionService
             transaction.Details.Remove(d);
 
         if (dto.TransactionDate.HasValue)
-            transaction.TransactionDate = dto.TransactionDate.Value;
+            transaction.TransactionDate = DateTime.SpecifyKind(dto.TransactionDate.Value, DateTimeKind.Utc);
         if (dto.Remarks is not null)
             transaction.Remarks = dto.Remarks;
+        transaction.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 
@@ -205,7 +206,7 @@ public class StockTransactionService : IStockTransactionService
             .FirstOrDefaultAsync(t => t.Id == id, ct)
             ?? throw new NotFoundException($"Transaction with id {id} was not found.");
 
-        var direction = transaction.TransactionType == TransactionType.Receipt ? 1 : -1;
+        var direction = GetStockDirection(transaction.TransactionType);
         var storeId = transaction.StoreId;
 
         // Deleting reverses the stock effect (newQty becomes 0): delta = -direction * qty.
@@ -219,6 +220,14 @@ public class StockTransactionService : IStockTransactionService
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
+
+    private static int GetStockDirection(TransactionType transactionType) => transactionType switch
+    {
+        TransactionType.Receipt => 1,
+        TransactionType.OpeningBalance => 1,
+        TransactionType.Issue => -1,
+        _ => throw new ConflictException($"Transaction type '{transactionType}' is not supported for stock adjustments.")
+    };
 
     private async Task ApplyStockDeltasAsync(int storeId, Dictionary<int, decimal> deltas, CancellationToken ct)
     {

@@ -70,6 +70,7 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [originalIssueQuantities, setOriginalIssueQuantities] = useState<Record<string, number>>({})
 
   useEffect(() => {
     let active = true
@@ -92,6 +93,10 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
   }, [])
 
   function applyTransaction(transaction: StockTransaction) {
+    if (transaction.transactionType !== 'Receipt' && transaction.transactionType !== 'Issue') {
+      throw new Error(`Transaction type '${transaction.transactionType}' cannot be edited in this form.`)
+    }
+
     setForm({
       transactionNo: transaction.transactionNo,
       transactionDate: transaction.transactionDate.slice(0, 10),
@@ -109,6 +114,15 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
         available: null,
         stockNotice: null,
       })),
+    )
+    setOriginalIssueQuantities(
+      transaction.transactionType === 'Issue'
+        ? transaction.details.reduce<Record<string, number>>((totals, detail) => {
+            const key = String(detail.itemId)
+            totals[key] = (totals[key] ?? 0) + detail.quantity
+            return totals
+          }, {})
+        : {},
     )
     if (transaction.transactionType === 'Issue') {
       transaction.details.forEach((detail, index) => {
@@ -193,6 +207,7 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
   function availableForRow(index: number, rows = details): number | null {
     const row = rows[index]
     if (row.available === null || !row.itemId) return null
+    const originalIssued = form.transactionType === 'Issue' && isEditing ? (originalIssueQuantities[row.itemId] ?? 0) : 0
 
     const quantityInOtherRows = rows.reduce((total, other, otherIndex) => {
       if (otherIndex === index || other.itemId !== row.itemId) return total
@@ -200,11 +215,18 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
       return total + (Number.isFinite(quantity) && quantity > 0 ? quantity : 0)
     }, 0)
 
-    return Math.max(0, row.available - quantityInOtherRows)
+    return Math.max(0, row.available + originalIssued - quantityInOtherRows)
+  }
+
+  function availableTotalForItem(itemId: string): number | null {
+    const row = details.find((detail) => detail.itemId === itemId && detail.available !== null)
+    if (!row || row.available === null) return null
+    const originalIssued = form.transactionType === 'Issue' && isEditing ? (originalIssueQuantities[itemId] ?? 0) : 0
+    return row.available + originalIssued
   }
 
   function onQuantityChange(index: number, value: string) {
-    if (isEditing || form.transactionType !== 'Issue' || value.trim() === '') {
+    if (form.transactionType !== 'Issue' || value.trim() === '') {
       updateRow(index, 'quantity', value)
       return
     }
@@ -266,11 +288,12 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
       const qty = Number(row.quantity)
       if (row.quantity.trim() === '' || isNaN(qty)) re.push('Quantity is required')
       else if (qty <= 0) re.push('Quantity must be > 0')
-      if (!isEditing && form.transactionType === 'Issue' && row.itemId && form.storeId) {
-        if (row.available === null) {
+      if (form.transactionType === 'Issue' && row.itemId && form.storeId) {
+        const allowedTotal = availableTotalForItem(row.itemId)
+        if (allowedTotal === null) {
           re.push('Available stock is still loading. Please wait and try again')
-        } else if (requestedByItem[row.itemId] > row.available) {
-          re.push(`Requested total (${requestedByItem[row.itemId]}) exceeds available stock (${row.available})`)
+        } else if (requestedByItem[row.itemId] > allowedTotal) {
+          re.push(`Requested total (${requestedByItem[row.itemId]}) exceeds available stock (${allowedTotal})`)
         }
       }
       return re.join('; ')
@@ -320,12 +343,14 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
         setForm(initialForm())
         setDetails([emptyDetail()])
         setErrors({ rows: [] })
+        setOriginalIssueQuantities({})
       } else {
         await createIssueTransaction(payload)
         setSuccess(`${form.transactionType} transaction '${form.transactionNo}' created.`)
         setForm(initialForm())
         setDetails([emptyDetail()])
         setErrors({ rows: [] })
+        setOriginalIssueQuantities({})
       }
     } catch (err) {
       setSubmitError(extractError(err))
@@ -444,13 +469,12 @@ export default function StockTransactionForm({ transactionId }: StockTransaction
             {details.map((row, index) => {
               const qty = Number(row.quantity)
               const exceeds =
-                !isEditing &&
                 form.transactionType === 'Issue' &&
                 row.available !== null &&
                 row.quantity.trim() !== '' &&
                 !isNaN(qty) &&
                 qty > (availableForRow(index) ?? row.available)
-              const rowLimit = !isEditing && form.transactionType === 'Issue' ? availableForRow(index) : null
+              const rowLimit = form.transactionType === 'Issue' ? availableForRow(index) : null
               return (
                 <tr key={index}>
                   <td>
