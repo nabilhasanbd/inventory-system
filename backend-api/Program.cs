@@ -19,6 +19,7 @@ builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IStockBalanceService, StockBalanceService>();
 builder.Services.AddScoped<IStockTransactionService, StockTransactionService>();
+builder.Services.AddScoped<IStockReportService, StockReportService>();
 
 var app = builder.Build();
 

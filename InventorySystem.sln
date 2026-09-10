@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend-api", "backend-api\backend-api.csproj", "{5CCD8D0F-A873-4F66-A68F-0B580BAAE16B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend-api.Tests", "backend-api.Tests\backend-api.Tests.csproj", "{A2E032FE-3B8B-4F8C-8E1B-078FFCE96370}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{5CCD8D0F-A873-4F66-A68F-0B580BAAE16B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CCD8D0F-A873-4F66-A68F-0B580BAAE16B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CCD8D0F-A873-4F66-A68F-0B580BAAE16B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2E032FE-3B8B-4F8C-8E1B-078FFCE96370}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2E032FE-3B8B-4F8C-8E1B-078FFCE96370}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2E032FE-3B8B-4F8C-8E1B-078FFCE96370}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2E032FE-3B8B-4F8C-8E1B-078FFCE96370}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
