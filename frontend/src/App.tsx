@@ -3,6 +3,7 @@ import MainLayout from './layouts/MainLayout'
 import ItemsPage from './pages/ItemsPage'
 import StoresPage from './pages/StoresPage'
 import StockTransactionsPage from './pages/StockTransactionsPage'
+import StockTransactionFormPage from './pages/StockTransactionFormPage'
 import StockReportsPage from './pages/StockReportsPage'
 import TransactionReportsPage from './pages/TransactionReportsPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -15,7 +16,8 @@ export default function App() {
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/stores" element={<StoresPage />} />
         <Route path="/stock-transactions" element={<StockTransactionsPage />} />
-        <Route path="/stock-transactions/:id/edit" element={<StockTransactionsPage />} />
+        <Route path="/stock-transactions/new" element={<StockTransactionFormPage />} />
+        <Route path="/stock-transactions/:id/edit" element={<StockTransactionFormPage />} />
         <Route path="/stock-reports" element={<StockReportsPage />} />
         <Route path="/transaction-reports" element={<TransactionReportsPage />} />
         <Route path="*" element={<NotFoundPage />} />
