@@ -1,5 +1,36 @@
 # Inventory Stock Management System
 
+## To Run
+
+Open **two terminals** in `D:\projects\inventory-system`.
+
+First, make sure PostgreSQL is running and configure the connection string in [backend-api/appsettings.json](D:/projects/Newrozz/inventory-system/backend-api/appsettings.json) with your database name, username, and password.
+
+**Terminal 1 — Backend**
+
+```powershell
+dotnet restore
+dotnet run --project backend-api --launch-profile http
+```
+
+Development startup applies migrations and seeds master data.
+
+- API: http://localhost:5231
+- Swagger: http://localhost:5231/swagger
+
+**Terminal 2 — Frontend**
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173**. The frontend forwards API requests to port `5231`.
+
+Keep both terminals running. Press `Ctrl+C` in each to stop.
+
+
 ## Project Overview
 
 This project is a simple inventory stock management system with:
